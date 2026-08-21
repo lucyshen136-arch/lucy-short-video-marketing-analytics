@@ -1,0 +1,41 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Secrets and local settings
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Private/raw research materials
+data/private/*
+!data/private/README.md
+data/raw/
+/private/
+transcripts/
+videos/
+
+# Generated local results
+data/processed/*.parquet
+data/processed/*.csv
+reports/figures/*.png
+reports/figures/*.svg
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

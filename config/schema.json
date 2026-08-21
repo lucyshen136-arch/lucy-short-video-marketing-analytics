@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lucy-short-video-marketing-analytics.local/schema/video-record.json",
+  "title": "Video research record",
+  "description": "Minimum required set for Douyin + Xiaohongshu + Bilibili mixed sample. Expansion fields documented in data/data_dictionary.md.",
+  "type": "object",
+  "required": [
+    "video_id",
+    "platform",
+    "public_url",
+    "title",
+    "creator_name",
+    "publish_date",
+    "duration_seconds",
+    "selection_reason"
+  ],
+  "properties": {
+    "video_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_-]+$",
+      "description": "Project-unique identifier, e.g. V001 or PILOT01."
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["douyin", "xiaohongshu", "bilibili"],
+      "description": "Source platform for this record."
+    },
+    "public_url": {
+      "type": "string",
+      "format": "uri",
+      "minLength": 1,
+      "description": "Public page URL used to verify the video."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Title shown on the platform."
+    },
+    "creator_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Real public display nickname from the platform UI."
+    },
+    "publish_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Publication date in YYYY-MM-DD."
+    },
+    "duration_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Video length in seconds."
+    },
+    "view_count": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Play/view count snapshot. Null if unavailable; never substitute zero."
+    },
+    "like_count": {
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "favorite_count": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Save/collect/favorite count."
+    },
+    "share_count": {
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "selection_reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Pre-analysis reason this video entered the sample."
+    },
+    "comment_count": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Strongly recommended at collection time."
+    },
+    "follower_count": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Creator follower count at collection time."
+    },
+    "metrics_collected_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "When performance metrics were copied from the platform."
+    },
+    "hashtags": {
+      "type": ["string", "null"],
+      "description": "Comma-separated topic tags, e.g. #护肤,#测评."
+    },
+    "notes": {
+      "type": ["string", "null"],
+      "description": "Collection notes, including unavailable metrics or platform label differences."
+    }
+  },
+  "anyOf": [
+    {
+      "required": ["view_count", "like_count", "favorite_count", "share_count"]
+    },
+    {
+      "properties": {
+        "metrics_unavailable_reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["metrics_unavailable_reason"]
+    }
+  ],
+  "additionalProperties": true
+}

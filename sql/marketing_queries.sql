@@ -1,0 +1,1 @@
+-- SQL business queries are implemented in S11. Do not fabricate results here.

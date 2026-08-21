@@ -1,0 +1,3 @@
+# Marketing Label Guide
+
+Initialized placeholder. Populate only in the approved unit; do not fabricate results.
