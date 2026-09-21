@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lucy-video-analytics-db
+    environment:
+      POSTGRES_USER: lucy_marketing
+      POSTGRES_PASSWORD: lucy_marketing_dev
+      POSTGRES_DB: video_analytics
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lucy_marketing -d video_analytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

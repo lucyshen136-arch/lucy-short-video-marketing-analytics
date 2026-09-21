@@ -1,6 +1,6 @@
 # Web Application Plan — Video Management & Visualization
 
-**Status:** Approved planning document (implementation not started)  
+**Status:** Phase 1 implementation in progress (M1–M4 scaffold landed)  
 **Last updated:** 2026-09-20  
 **Owner:** Lucy  
 

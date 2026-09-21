@@ -1,5 +1,6 @@
 # Python
 .venv/
+.venv312/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -17,6 +18,7 @@ build/
 .env
 .env.*
 !.env.example
+!web/.env.local.example
 *.key
 *.pem
 
@@ -26,7 +28,7 @@ data/private/*
 data/raw/
 /private/
 transcripts/
-videos/
+/videos/
 
 # Generated local results
 data/processed/*.parquet
@@ -39,3 +41,9 @@ reports/figures/*.svg
 Thumbs.db
 .idea/
 .vscode/
+
+# Next.js
+web/node_modules/
+web/.next/
+web/out/
+web/.env.local

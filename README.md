@@ -31,6 +31,10 @@ python -m pytest
 3. Run `prompts/WORKSPACE_AUDIT.md` once. It must not implement features.
 4. Execute only `prompts/S01_Research_Scope_and_Evidence_Workflow.md`.
 
+## Local video management web app (optional)
+
+Phase 1 UI for list / detail / create / edit / delete: see **`docs/web_local_dev.md`** and **`docs/web_app_plan.md`**.
+
 ## Privacy Boundary
 
 Never commit complete transcripts, video files, credentials, private-account information, or unapproved personal information. Private/raw working files belong under ignored paths. Public fixtures must be synthetic or publication-approved.
