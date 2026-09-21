@@ -1,25 +1,29 @@
 # Local Web App — Quick Start
 
-Phase 1 video management UI: **Next.js** (`web/`) + **FastAPI** (`api/`) + **PostgreSQL** (Docker).
+Phase 1 video management UI: **Next.js** (`web/`) + **FastAPI** (`api/`) + **PostgreSQL** (Neon or local Docker).
 
 ## Prerequisites
 
 - Python 3.11+
 - Node.js 18+
-- Docker Desktop (or Docker Engine)
+- A Postgres database: **Neon** (current) or Docker Compose (optional local fallback)
 
 ## 1. Database
 
+Copy environment files, then put the real Neon URL only in `.env` (gitignored):
+
 ```bash
 cd /path/to/lucy-short-video-marketing-analytics
-docker compose up -d
-```
-
-Copy environment template if needed:
-
-```bash
 cp .env.example .env
 cp web/.env.local.example web/.env.local
+```
+
+Set `DATABASE_URL` in `.env` to the Neon connection string (SQLAlchemy form `postgresql+psycopg://...` is also accepted). The API converts `postgresql://` automatically. Alembic uses the **direct** Neon host (without `-pooler`) when the URL is pooled.
+
+Optional local Docker instead of Neon:
+
+```bash
+docker compose up -d
 ```
 
 ## 2. Python API
