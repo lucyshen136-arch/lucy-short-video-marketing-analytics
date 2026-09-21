@@ -191,12 +191,22 @@ export default function VideoForm({ mode, initial, onSubmit, onDelete }: Props) 
     if (!contentDict) return {} as Record<string, { code: string; label_zh: string }[]>;
     const out: Record<string, { code: string; label_zh: string }[]> = {};
     for (const [field, meta] of Object.entries(contentDict.fields)) {
-      if (meta.values) out[field] = meta.values.map((v) => ({ code: v.code, label_zh: v.label_zh }));
+      const rows = meta.values ?? meta.sentinel_values ?? meta.anchors ?? [];
+      if (rows.length) {
+        out[field] = rows.map((v) => ({
+          code: String(v.code ?? v.score ?? ""),
+          label_zh: v.label_zh,
+        }));
+      }
     }
     return out;
   }, [contentDict]);
 
-  const viewerWatching = viewerDict?.fields.viewer_continued_watching.values ?? [];
+  const viewerWatching = (
+    viewerDict?.fields.viewer_continued_watching?.values ??
+    viewerDict?.fields.viewer_continued_watching?.sentinel_values ??
+    []
+  ).map((v) => ({ code: String(v.code ?? ""), label_zh: v.label_zh }));
 
   function onChange(name: string, value: string) {
     setForm((prev) => ({ ...prev, [name]: value }));

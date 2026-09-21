@@ -48,10 +48,63 @@ export type VideoListResponse = {
   page_size: number;
 };
 
+export type DictionaryOption = {
+  code?: string;
+  score?: number;
+  label_zh: string;
+};
+
 export type DictionaryField = {
   label_zh: string;
   field_kind: string;
-  values?: { code: string; label_zh: string }[];
+  values?: DictionaryOption[];
+  sentinel_values?: DictionaryOption[];
+  anchors?: DictionaryOption[];
+};
+
+export type DictionaryItemRecord = {
+  id: number;
+  field_id: number;
+  code: string;
+  label_zh: string;
+  definition: string | null;
+  sort_order: number;
+};
+
+export type DictionaryFieldRecord = {
+  id: number;
+  field_key: string;
+  label_zh: string;
+  field_kind: string;
+  question: string | null;
+  items: DictionaryItemRecord[];
+};
+
+export type DictionarySetSummary = {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  version: string | null;
+  source_doc: string | null;
+  scope: string | null;
+  created_at: string;
+  updated_at: string;
+  field_count: number;
+  item_count: number;
+};
+
+export type DictionarySetRecord = {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  version: string | null;
+  source_doc: string | null;
+  scope: string | null;
+  created_at: string;
+  updated_at: string;
+  fields: DictionaryFieldRecord[];
 };
 
 export type LabelDictionary = {

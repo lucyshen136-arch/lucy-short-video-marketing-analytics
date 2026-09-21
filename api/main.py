@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 from api.config import get_settings
 from api.database import engine
-from api.routers import dictionaries, videos
+from api.routers import dictionaries, dictionary_sets, videos
 
 settings = get_settings()
 
@@ -19,6 +19,7 @@ app.add_middleware(
 
 app.include_router(videos.router, prefix="/api/v1")
 app.include_router(dictionaries.router, prefix="/api/v1")
+app.include_router(dictionary_sets.router, prefix="/api/v1")
 
 
 @app.get("/health")

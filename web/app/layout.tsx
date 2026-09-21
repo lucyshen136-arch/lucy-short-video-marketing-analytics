@@ -20,6 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/videos" className="text-slate-600 hover:text-slate-900">
                 视频列表
               </Link>
+              <Link href="/dictionaries" className="text-slate-600 hover:text-slate-900">
+                数据字典
+              </Link>
               <Link href="/videos/new" className="text-blue-600 hover:text-blue-800">
                 添加视频
               </Link>

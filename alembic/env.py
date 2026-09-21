@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 
 from api.config import get_settings
 from api.database import Base
-from api.models import Video  # noqa: F401
+from api.models import DictionaryField, DictionaryItem, DictionarySet, Video  # noqa: F401
 
 config = context.config
 if config.config_file_name is not None:
