@@ -259,7 +259,6 @@ function setAsLabelJson(set: DictionarySetRecord): LabelDictionary & Record<stri
       code: item.code,
       label_zh: item.label_zh,
       definition: item.definition,
-      ...(item as DictionaryItemRecord & { extra?: Record<string, unknown> }),
     }));
     const fieldBody: Record<string, unknown> = {
       label_zh: field.label_zh,
