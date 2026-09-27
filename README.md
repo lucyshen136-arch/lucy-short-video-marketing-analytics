@@ -31,9 +31,9 @@ python -m pytest
 3. Run `prompts/WORKSPACE_AUDIT.md` once. It must not implement features.
 4. Execute only `prompts/S01_Research_Scope_and_Evidence_Workflow.md`.
 
-## Local video management web app (optional)
+## Video management web app
 
-Phase 1 UI for list / detail / create / edit / delete: see **`docs/web_local_dev.md`** and **`docs/web_app_plan.md`**.
+Production UI is a **Vercel** deployment of `web/` connected to **Neon** via the `DATABASE_URL` project environment variable. Local and deploy steps: **`docs/web_local_dev.md`**. Phase 1 scope: **`docs/web_app_plan.md`**.
 
 ## Privacy Boundary
 

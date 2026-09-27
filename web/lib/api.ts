@@ -8,7 +8,14 @@ import type {
   VideoRecord,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+function apiBase(): string {
+  const raw = (process.env.NEXT_PUBLIC_API_URL ?? "").trim().replace(/\/$/, "");
+  if (!raw) return "";
+  if (raw.includes("127.0.0.1") || raw.includes("localhost")) return "";
+  return raw;
+}
+
+const API_BASE = apiBase();
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {

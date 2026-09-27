@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getVideo } from "@/lib/api";
+import { getVideoDb, HttpError } from "@/lib/data/videos";
+
+export const dynamic = "force-dynamic";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -25,9 +27,12 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ vi
   const { videoId } = await params;
   let video;
   try {
-    video = await getVideo(videoId);
-  } catch {
-    notFound();
+    video = await getVideoDb(videoId);
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 404) {
+      notFound();
+    }
+    throw error;
   }
 
   return (

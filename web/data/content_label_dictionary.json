@@ -1,0 +1,291 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-08-21",
+  "source_doc": "data/sample/视频三层特征.md",
+  "scope": "content_* fields (layer 2: content and marketing labels)",
+  "rules": [
+    "Pick one primary value per field unless the field explicitly allows free text.",
+    "Label only after watching the full video at least once.",
+    "Do not use viewer reaction or public metrics to infer content labels.",
+    "Use the code column in CSV/JSON; use label_zh when reading or explaining."
+  ],
+  "fields": {
+    "content_type": {
+      "label_zh": "内容类型 / 主题",
+      "field_kind": "enum",
+      "question": "这条片子大体是什么品类？",
+      "values": [
+        {
+          "code": "travel_vlog",
+          "label_zh": "旅行 vlog",
+          "definition": "以出行、目的地体验、路途见闻为主的记录或分享。"
+        },
+        {
+          "code": "food_review",
+          "label_zh": "美食测评",
+          "definition": "以餐厅、菜品、零食或饮品体验与评价为主。"
+        },
+        {
+          "code": "beauty_review",
+          "label_zh": "美妆护肤评测",
+          "definition": "以化妆、护肤、个护产品试用或效果展示为主。"
+        },
+        {
+          "code": "knowledge_explainer",
+          "label_zh": "知识科普",
+          "definition": "以解释概念、原理、方法为主，目标是把一件事讲明白。"
+        },
+        {
+          "code": "film_tv_commentary",
+          "label_zh": "影视解说",
+          "definition": "以电影、剧集、综艺等影像内容的讲解或评论为主。"
+        },
+        {
+          "code": "anime_comic_commentary",
+          "label_zh": "动漫解说",
+          "definition": "以动画、漫画及相关 IP 的讲解、盘点或深度解析为主。"
+        },
+        {
+          "code": "lifestyle_review",
+          "label_zh": "生活方式体验",
+          "definition": "以出行舱位、酒店、日常消费、服务体验等生活方式内容为主，不局限于单一品类。"
+        },
+        {
+          "code": "product_review",
+          "label_zh": "产品测评",
+          "definition": "以具体商品的功能、性能、性价比评价为主。"
+        },
+        {
+          "code": "entertainment_clip",
+          "label_zh": "娱乐剪辑",
+          "definition": "以综艺、名场面、搞笑或冲突片段剪辑传播为主。"
+        },
+        {
+          "code": "brand_promo",
+          "label_zh": "品牌种草 / 商业推广",
+          "definition": "以明确的品牌、产品或合作推广为主要目的。"
+        },
+        {
+          "code": "other",
+          "label_zh": "其他",
+          "definition": "以上类别都不合适时使用，并在备注中说明具体类型。"
+        }
+      ]
+    },
+    "content_hook_type": {
+      "label_zh": "Hook（钩子）",
+      "field_kind": "enum",
+      "question": "开头约 1–3 秒靠什么把我留住？",
+      "values": [
+        {
+          "code": "question",
+          "label_zh": "提问",
+          "definition": "开头用问题勾起好奇，例如「你知道为什么……吗？」"
+        },
+        {
+          "code": "result_first",
+          "label_zh": "先给结果",
+          "definition": "开头先展示结论、成品、结局或最吸引人的结果，再展开过程。"
+        },
+        {
+          "code": "conflict_contrast",
+          "label_zh": "冲突 / 反差",
+          "definition": "开头制造对立、意外、争议或预期与现实的落差，例如「竟然……」「没想到……」"
+        },
+        {
+          "code": "strong_visual",
+          "label_zh": "展示结果物或强画面",
+          "definition": "开头用强视觉、成品特写、震撼画面或高识别度场景直接抓注意力。"
+        }
+      ]
+    },
+    "content_narrative_structure": {
+      "label_zh": "叙事结构",
+      "field_kind": "enum",
+      "question": "整条片子按什么骨架讲完？",
+      "values": [
+        {
+          "code": "result_then_process",
+          "label_zh": "先结果后过程",
+          "definition": "先告诉观众结果或结论，再倒叙或补充如何做到。"
+        },
+        {
+          "code": "chronological",
+          "label_zh": "按时间顺序",
+          "definition": "按发生顺序推进，例如「第一天……第二天……」或 vlog 时间线。"
+        },
+        {
+          "code": "before_after",
+          "label_zh": "对比（用前 / 用后）",
+          "definition": "通过前后状态对照组织内容，突出变化或差异。"
+        },
+        {
+          "code": "problem_solution",
+          "label_zh": "问题解决",
+          "definition": "痛点 → 方法 → 效果，先提出问题再给解决方案。"
+        },
+        {
+          "code": "listicle",
+          "label_zh": "清单罗列",
+          "definition": "以「3 个技巧 / 5 个理由 / 多个要点」方式逐条展开。"
+        },
+        {
+          "code": "other",
+          "label_zh": "其他",
+          "definition": "以上结构都不合适时使用，并在备注中简要说明。"
+        }
+      ]
+    },
+    "content_value_proposition": {
+      "label_zh": "价值主张",
+      "field_kind": "free_text",
+      "question": "片子主要承诺给观众什么好处？",
+      "sentinel_values": [
+        {
+          "code": "none_clear",
+          "label_zh": "无明确主张",
+          "definition": "看完后说不清主要承诺，或内容以展示/娱乐为主，没有清晰收益点。"
+        }
+      ],
+      "guidance": "用一句人话概括，例如「学生党也能快速做对题」。有明确主张时写自由文本；没有则填 none_clear，不要硬编。"
+    },
+    "content_persuasion": {
+      "label_zh": "说服机制",
+      "field_kind": "enum",
+      "question": "主要靠什么让我接受片中的说法？（标一个主机制）",
+      "values": [
+        {
+          "code": "authority",
+          "label_zh": "权威",
+          "definition": "借助专家身份、机构背书、数据或专业判断建立可信度。"
+        },
+        {
+          "code": "demonstration",
+          "label_zh": "示范",
+          "definition": "作者亲自演示、试用、操作，让我「看见怎么做」。"
+        },
+        {
+          "code": "social_proof",
+          "label_zh": "社会认同",
+          "definition": "强调很多人用、很多好评、热门或跟风，例如「大家都在买」。"
+        },
+        {
+          "code": "scarcity_urgency",
+          "label_zh": "稀缺或截止",
+          "definition": "用限时、限量、错过不再有等制造紧迫感。"
+        },
+        {
+          "code": "story_resonance",
+          "label_zh": "故事共鸣",
+          "definition": "通过个人经历、情绪故事或身份认同让我产生共鸣。"
+        },
+        {
+          "code": "none_clear",
+          "label_zh": "无明显说服机制",
+          "definition": "内容以信息展示或娱乐为主，没有清晰的说服设计。"
+        }
+      ]
+    },
+    "content_evidence_type": {
+      "label_zh": "证据方式",
+      "field_kind": "enum",
+      "question": "说法主要用什么材料支撑？（标一个主证据类型）",
+      "values": [
+        {
+          "code": "before_after",
+          "label_zh": "前后对比",
+          "definition": "用使用前/使用后的画面对比证明效果。"
+        },
+        {
+          "code": "usage_process",
+          "label_zh": "使用过程",
+          "definition": "展示完整或关键的使用、体验、操作过程。"
+        },
+        {
+          "code": "verifiable_detail",
+          "label_zh": "可核对细节",
+          "definition": "给出可现场核对的具体细节，例如价格、位置、实物特写、现场环境。"
+        },
+        {
+          "code": "data_or_source",
+          "label_zh": "引用数据或来源",
+          "definition": "引用统计数字、研究报告、官方信息或可追溯来源。"
+        },
+        {
+          "code": "verbal_only",
+          "label_zh": "只有口头承诺",
+          "definition": "主要靠口播或字幕断言，没有足够过程或细节展示。"
+        }
+      ]
+    },
+    "content_funnel_stage": {
+      "label_zh": "漏斗阶段",
+      "field_kind": "enum",
+      "question": "作者最希望观众看完后停在哪一步？（标一个主阶段）",
+      "values": [
+        {
+          "code": "awareness",
+          "label_zh": "认知",
+          "definition": "让你知道有这么回事、看见一种生活方式或产品存在。"
+        },
+        {
+          "code": "consideration",
+          "label_zh": "考虑",
+          "definition": "帮你比较、理解优缺点、打消疑虑，但尚未强推立即行动。"
+        },
+        {
+          "code": "conversion",
+          "label_zh": "转化",
+          "definition": "明确推动观众马上做一件事，如下单、私信、点链接、到店。"
+        }
+      ]
+    },
+    "content_cta_type": {
+      "label_zh": "CTA（行动号召）",
+      "field_kind": "enum",
+      "question": "片里有没有明确叫观众做一件事？叫的是哪一件？",
+      "values": [
+        {
+          "code": "none",
+          "label_zh": "无 CTA",
+          "definition": "没有口头或字幕指令要求观众采取具体行动。"
+        },
+        {
+          "code": "follow",
+          "label_zh": "关注",
+          "definition": "明确让观众关注账号。"
+        },
+        {
+          "code": "like",
+          "label_zh": "点赞",
+          "definition": "明确让观众点赞或双击。"
+        },
+        {
+          "code": "comment_keyword",
+          "label_zh": "评论区扣字",
+          "definition": "让观众在评论区回复特定词语、数字或关键词，例如「扣 1」。"
+        },
+        {
+          "code": "profile_link",
+          "label_zh": "去主页 / 点链接",
+          "definition": "引导观众进入主页、橱窗、购物车或外部链接。"
+        },
+        {
+          "code": "search_keyword",
+          "label_zh": "搜索关键词",
+          "definition": "让观众去平台或电商搜索指定关键词。"
+        },
+        {
+          "code": "share",
+          "label_zh": "分享",
+          "definition": "明确让观众转发或分享给他人。"
+        },
+        {
+          "code": "purchase",
+          "label_zh": "购买 / 下单",
+          "definition": "明确推动购买、领券、下单或到店消费。"
+        }
+      ]
+    }
+  }
+}

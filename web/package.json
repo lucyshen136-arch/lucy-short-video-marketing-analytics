@@ -9,12 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@vercel/functions": "^3.9.9",
     "next": "^15.1.0",
+    "pg": "^8.23.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",

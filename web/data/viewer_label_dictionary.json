@@ -1,0 +1,153 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-08-21",
+  "source_doc": "data/sample/视频三层特征.md",
+  "scope": "viewer_* fields (layer 3: Lucy's personal response)",
+  "rules": [
+    "Only Lucy may fill viewer_* fields.",
+    "Do not use public metrics (views, likes) as substitutes for personal response.",
+    "Do not use author CTA presence as a substitute for action intent.",
+    "Use the code column for enums; use integers 1–5 for score fields.",
+    "Score anchors at 1, 3, and 5 must stay stable across all videos in the sample."
+  ],
+  "fields": {
+    "viewer_continued_watching": {
+      "label_zh": "是否继续观看 / 完看",
+      "field_kind": "enum",
+      "question": "我有没有看完？大约在哪里想划走？",
+      "values": [
+        {
+          "code": "finished",
+          "label_zh": "看完",
+          "definition": "从头看到结尾，或仅剩片尾极短几秒内划走。"
+        },
+        {
+          "code": "half_left",
+          "label_zh": "看到一半划走",
+          "definition": "看到中间某段失去兴趣或耐心，未看到结尾。"
+        },
+        {
+          "code": "left_early",
+          "label_zh": "开头就划走",
+          "definition": "开头几秒内或刚开始不久就划走，未形成完整观看。"
+        }
+      ],
+      "expansion_note": "有把握后可另增字段记录大致划走秒数；本字段仍只标三档。"
+    },
+    "viewer_memory_score": {
+      "label_zh": "记忆",
+      "field_kind": "ordinal_score",
+      "min": 1,
+      "max": 5,
+      "question": "隔一段时间之后，我还能否说出这条片的核心画面或一句话？",
+      "timing_guidance": "建议在当天稍后或隔天上课/填表前回忆，不要刚划走立刻打分。",
+      "anchors": [
+        {
+          "score": 1,
+          "label_zh": "完全想不起来",
+          "definition": "已经想不起这条片讲过什么，或只记得「看过但无内容」。"
+        },
+        {
+          "score": 2,
+          "label_zh": "模糊印象",
+          "definition": "只记得大类或情绪，说不出具体画面或关键句。"
+        },
+        {
+          "score": 3,
+          "label_zh": "记得主题",
+          "definition": "能说出大致主题或类型，但细节、过程或关键画面不清晰。"
+        },
+        {
+          "score": 4,
+          "label_zh": "记得核心画面",
+          "definition": "能说出至少一个核心画面或一句代表性的话。"
+        },
+        {
+          "score": 5,
+          "label_zh": "印象清晰",
+          "definition": "能较完整复述关键画面、情节转折或核心信息。"
+        }
+      ]
+    },
+    "viewer_trust_score": {
+      "label_zh": "信任",
+      "field_kind": "ordinal_score",
+      "min": 1,
+      "max": 5,
+      "question": "我信不信片子里的说法或这个创作者？",
+      "not_this": "这不是点赞数，也不是播放量。",
+      "anchors": [
+        {
+          "score": 1,
+          "label_zh": "不可信",
+          "definition": "像编的、很销售、证据对不上，或明显夸大。"
+        },
+        {
+          "score": 2,
+          "label_zh": "偏不可信",
+          "definition": "多处存疑，需要大量自行核实才敢参考。"
+        },
+        {
+          "score": 3,
+          "label_zh": "半信半疑",
+          "definition": "部分说法可信，但仍想再查或交叉验证。"
+        },
+        {
+          "score": 4,
+          "label_zh": "基本可信",
+          "definition": "有过程、有细节或也讲缺点，整体愿意参考。"
+        },
+        {
+          "score": 5,
+          "label_zh": "很可信",
+          "definition": "愿意把这里的说法讲给别人听，或作为决策参考。"
+        }
+      ],
+      "calibration_note": "有具体过程、也讲缺点，往往更容易打高；绝对化承诺、空赞美，往往打低。"
+    },
+    "viewer_action_intent_score": {
+      "label_zh": "行动意愿",
+      "field_kind": "ordinal_score",
+      "min": 1,
+      "max": 5,
+      "question": "看完后我有多想做一件相关的事？",
+      "action_examples": [
+        "去搜关键词",
+        "收藏视频",
+        "想去某个地方",
+        "想试某个方法",
+        "想关注创作者",
+        "想购买或下单"
+      ],
+      "not_this": "这不是第 2 层 CTA；作者喊了不代表我想做。",
+      "anchors": [
+        {
+          "score": 1,
+          "label_zh": "无行动意愿",
+          "definition": "看完就过，什么都不想做。"
+        },
+        {
+          "score": 2,
+          "label_zh": "极弱意愿",
+          "definition": "有一点点印象，但没有动力去搜、关注或尝试。"
+        },
+        {
+          "score": 3,
+          "label_zh": "有点心动",
+          "definition": "有点想做（如搜一下、收藏），但不一定真做。"
+        },
+        {
+          "score": 4,
+          "label_zh": "较强意愿",
+          "definition": "很可能会去搜、点主页、收藏或做一件相关的小行动。"
+        },
+        {
+          "score": 5,
+          "label_zh": "马上想做",
+          "definition": "马上想搜 / 点主页 / 试一下 / 关注或购买。"
+        }
+      ],
+      "pattern_note": "作者喊「去买」而 Lucy 完全不想买，应记为：有 CTA，但行动意愿低——这是有效观察，不是填表错误。"
+    }
+  }
+}

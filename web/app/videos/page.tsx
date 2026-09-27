@@ -1,12 +1,14 @@
 import Link from "next/link";
 
-import { listVideos } from "@/lib/api";
+import { listVideosDb } from "@/lib/data/videos";
+
+export const dynamic = "force-dynamic";
 
 export default async function VideosPage() {
   let data;
   let error: string | null = null;
   try {
-    data = await listVideos(1, 50);
+    data = await listVideosDb(1, 50);
   } catch (e) {
     error = e instanceof Error ? e.message : "无法连接 API";
     data = { items: [], total: 0, page: 1, page_size: 50 };
@@ -23,7 +25,7 @@ export default async function VideosPage() {
 
       {error && (
         <p className="mb-4 rounded bg-amber-50 p-3 text-sm text-amber-900">
-          {error} — 请确认 Docker Postgres 与 API 已启动（见 docs/web_local_dev.md）。
+          {error} — 请确认已配置 DATABASE_URL（Vercel 环境变量或 web/.env.local），见 docs/web_local_dev.md。
         </p>
       )}
 
