@@ -82,6 +82,14 @@ export async function listVideosDb(page = 1, pageSize = 20): Promise<VideoListRe
   };
 }
 
+export async function listAllVideosDb(): Promise<VideoRecord[]> {
+  const result = await query(
+    `SELECT * FROM videos
+     ORDER BY meta_publish_date DESC, video_id ASC`,
+  );
+  return result.rows.map((row) => mapVideo(row));
+}
+
 export async function getVideoDb(videoId: string): Promise<VideoRecord> {
   const result = await query("SELECT * FROM videos WHERE video_id = $1", [videoId]);
   if (!result.rowCount) {

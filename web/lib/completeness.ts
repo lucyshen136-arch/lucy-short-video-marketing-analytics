@@ -90,3 +90,38 @@ export function layerCompleteness(video: VideoRecord): LayerCompleteness[] {
     };
   });
 }
+
+export type LayerQuality = {
+  key: LayerCompleteness["key"];
+  label: string;
+  fieldCount: number;
+  completeVideos: number;
+  missingFields: number;
+};
+
+export type CollectionSummary = {
+  total: number;
+  fullyComplete: number;
+  layers: LayerQuality[];
+};
+
+export function collectionSummary(videos: VideoRecord[]): CollectionSummary {
+  const layers = LAYERS.map((layer) => {
+    let completeVideos = 0;
+    let missingFields = 0;
+    for (const video of videos) {
+      const missing = layer.fields.filter((field) => !isCollected(video[field])).length;
+      missingFields += missing;
+      if (missing === 0) completeVideos += 1;
+    }
+    return {
+      key: layer.key,
+      label: layer.label,
+      fieldCount: layer.fields.length,
+      completeVideos,
+      missingFields,
+    };
+  });
+  const fullyComplete = videos.filter((video) => layerCompleteness(video).every((layer) => layer.missing === 0)).length;
+  return { total: videos.length, fullyComplete, layers };
+}
