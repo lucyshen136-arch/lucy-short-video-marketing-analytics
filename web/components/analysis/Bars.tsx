@@ -1,10 +1,12 @@
 export function Bars({
   items,
+  empty = "Nothing to chart yet.",
 }: {
   items: { label: string; value: number; max: number; caption: string }[];
+  empty?: string;
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-slate-500">还没有可绘制的数值。</p>;
+    return <p className="text-sm text-slate-500">{empty}</p>;
   }
   return (
     <ul className="space-y-3">

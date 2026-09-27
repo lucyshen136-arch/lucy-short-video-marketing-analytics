@@ -52,6 +52,7 @@ export type DerivedMetrics = {
 };
 
 export type AssociationResult = {
+  id: string;
   platform: string;
   name: string;
   xLabel: string;
@@ -151,6 +152,7 @@ export function spearman(xs: number[], ys: number[]): number | null {
 }
 
 const ASSOCIATIONS: {
+  id: string;
   name: string;
   xLabel: string;
   yLabel: string;
@@ -159,6 +161,7 @@ const ASSOCIATIONS: {
 }[] = [
   {
     name: "信任 × 点赞率",
+    id: "trust_like",
     xLabel: "信任 1–5",
     yLabel: "点赞率",
     x: (video) => asNumber(video.viewer_trust_score),
@@ -166,6 +169,7 @@ const ASSOCIATIONS: {
   },
   {
     name: "记忆 × 点赞率",
+    id: "memory_like",
     xLabel: "记忆 1–5",
     yLabel: "点赞率",
     x: (video) => asNumber(video.viewer_memory_score),
@@ -173,6 +177,7 @@ const ASSOCIATIONS: {
   },
   {
     name: "行动意愿 × 互动率",
+    id: "action_engagement",
     xLabel: "行动意愿 1–5",
     yLabel: "互动率",
     x: (video) => asNumber(video.viewer_action_intent_score),
@@ -180,6 +185,7 @@ const ASSOCIATIONS: {
   },
   {
     name: "信任 × 互动率",
+    id: "trust_engagement",
     xLabel: "信任 1–5",
     yLabel: "互动率",
     x: (video) => asNumber(video.viewer_trust_score),
@@ -206,6 +212,7 @@ export function associationsByPlatform(videos: VideoRecord[]): AssociationResult
       if (pairs.length < MIN_PAIRS) status = "insufficient";
       else if (coefficient === null) status = "undefined";
       results.push({
+        id: spec.id,
         platform,
         name: spec.name,
         xLabel: spec.xLabel,

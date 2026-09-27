@@ -16,12 +16,17 @@ import {
   updateDictionarySet,
 } from "@/lib/api";
 import type { DictionaryItemRecord, DictionarySetRecord } from "@/lib/types";
+import { messages, type Locale, type Messages } from "@/lib/i18n";
 
-const FIELD_KINDS = [
-  { code: "enum", label: "枚举" },
-  { code: "free_text", label: "自由文本（含哨兵值）" },
-  { code: "ordinal_score", label: "序数量表" },
-];
+type DictCopy = Messages["dictionaries"];
+
+function fieldKinds(copy: DictCopy) {
+  return [
+    { code: "enum", label: copy.kinds.enum },
+    { code: "free_text", label: copy.kinds.free_text },
+    { code: "ordinal_score", label: copy.kinds.ordinal_score },
+  ];
+}
 
 type ItemDraft = {
   code: string;
@@ -32,7 +37,8 @@ type ItemDraft = {
 
 const emptyItem: ItemDraft = { code: "", label_zh: "", definition: "", sort_order: "" };
 
-export default function DictionarySetEditor({ slug }: { slug: string }) {
+export default function DictionarySetEditor({ slug, locale }: { slug: string; locale: Locale }) {
+  const d = messages[locale].dictionaries;
   const router = useRouter();
   const [data, setData] = useState<DictionarySetRecord | null>(null);
   const [meta, setMeta] = useState({ name: "", description: "", version: "", source_doc: "", scope: "" });
@@ -95,7 +101,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
       });
       setData(row);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "保存失败");
+      setError(err instanceof Error ? err.message : d.saveFailed);
     } finally {
       setBusy(false);
     }
@@ -115,7 +121,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
       setNewField({ field_key: "", label_zh: "", field_kind: "enum", question: "" });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "添加字段失败");
+      setError(err instanceof Error ? err.message : d.addFieldFailed);
     } finally {
       setBusy(false);
     }
@@ -132,21 +138,21 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
       });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "更新字段失败");
+      setError(err instanceof Error ? err.message : d.updateFieldFailed);
     } finally {
       setBusy(false);
     }
   }
 
   async function onDeleteField(fieldKey: string) {
-    if (!confirm(`确认删除字段 ${fieldKey} 及其全部字典项？`)) return;
+    if (!confirm(d.confirmDeleteField(fieldKey))) return;
     setBusy(true);
     setError(null);
     try {
       await deleteDictionaryField(slug, fieldKey);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除字段失败");
+      setError(err instanceof Error ? err.message : d.deleteFieldFailed);
     } finally {
       setBusy(false);
     }
@@ -155,7 +161,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
   async function onSaveItem(fieldKey: string) {
     const draft = draftFor(fieldKey);
     if (!draft.code.trim() || !draft.label_zh.trim()) {
-      setError("字典项的 code 和中文标签不能为空");
+      setError(d.codeAndLabelRequired);
       return;
     }
     setBusy(true);
@@ -182,40 +188,40 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
       setDraft(fieldKey, emptyItem);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "保存字典项失败");
+      setError(err instanceof Error ? err.message : d.saveItemFailed);
     } finally {
       setBusy(false);
     }
   }
 
   async function onDeleteItem(item: DictionaryItemRecord) {
-    if (!confirm(`确认删除字典项 ${item.code}？`)) return;
+    if (!confirm(d.confirmDeleteItem(item.code))) return;
     setBusy(true);
     setError(null);
     try {
       await deleteDictionaryItem(item.id);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除字典项失败");
+      setError(err instanceof Error ? err.message : d.deleteItemFailed);
     } finally {
       setBusy(false);
     }
   }
 
   async function onDeleteSet() {
-    if (!confirm(`确认删除整套字典「${data?.name ?? slug}」？`)) return;
+    if (!confirm(d.confirmDeleteWhole(data?.name ?? slug))) return;
     setBusy(true);
     try {
       await deleteDictionarySet(slug);
       router.push("/dictionaries");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除失败");
+      setError(err instanceof Error ? err.message : d.deleteFailed);
       setBusy(false);
     }
   }
 
   if (!data) {
-    return <p className="text-sm text-slate-500">{error ?? "加载中…"}</p>;
+    return <p className="text-sm text-slate-500">{error ?? d.loading}</p>;
   }
 
   return (
@@ -223,7 +229,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Link href="/dictionaries" className="text-sm text-blue-700 hover:underline">
-            ← 全部字典套
+            {d.back}
           </Link>
           <h1 className="mt-1 text-2xl font-semibold">{data.name}</h1>
           <p className="font-mono text-xs text-slate-500">{data.slug}</p>
@@ -234,17 +240,17 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
           disabled={busy}
           className="min-h-11 rounded border border-red-300 px-3 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50"
         >
-          删除此套
+          {d.deleteThisSet}
         </button>
       </div>
 
       {error && <p className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
       <section className="rounded-lg border bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-lg font-medium">套信息</h2>
+        <h2 className="mb-3 text-lg font-medium">{d.setInfo}</h2>
         <form onSubmit={onSaveMeta} className="grid gap-3 md:grid-cols-2">
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">名称 *</span>
+            <span className="mb-1 block text-slate-600">{d.name} *</span>
             <input
               value={meta.name}
               onChange={(e) => setMeta((prev) => ({ ...prev, name: e.target.value }))}
@@ -253,7 +259,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">版本</span>
+            <span className="mb-1 block text-slate-600">{d.version}</span>
             <input
               value={meta.version}
               onChange={(e) => setMeta((prev) => ({ ...prev, version: e.target.value }))}
@@ -261,7 +267,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
             />
           </label>
           <label className="block text-sm md:col-span-2">
-            <span className="mb-1 block text-slate-600">说明</span>
+            <span className="mb-1 block text-slate-600">{d.description}</span>
             <input
               value={meta.description}
               onChange={(e) => setMeta((prev) => ({ ...prev, description: e.target.value }))}
@@ -269,7 +275,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">来源文档</span>
+            <span className="mb-1 block text-slate-600">{d.sourceDoc}</span>
             <input
               value={meta.source_doc}
               onChange={(e) => setMeta((prev) => ({ ...prev, source_doc: e.target.value }))}
@@ -277,7 +283,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">作用范围</span>
+            <span className="mb-1 block text-slate-600">{d.scope}</span>
             <input
               value={meta.scope}
               onChange={(e) => setMeta((prev) => ({ ...prev, scope: e.target.value }))}
@@ -290,7 +296,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
               disabled={busy}
               className="min-h-11 rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              保存套信息
+              {d.saveSet}
             </button>
           </div>
         </form>
@@ -313,14 +319,15 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
           onDeleteItem={onDeleteItem}
           onSaveField={(labelZh, kind, question) => onSaveField(field.field_key, labelZh, kind, question)}
           onDeleteField={() => onDeleteField(field.field_key)}
+          copy={d}
         />
       ))}
 
       <section className="rounded-lg border bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-lg font-medium">添加字段</h2>
+        <h2 className="mb-3 text-lg font-medium">{d.addField}</h2>
         <form onSubmit={onAddField} className="grid gap-3 md:grid-cols-2">
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">字段 key *</span>
+            <span className="mb-1 block text-slate-600">{d.fieldKey} *</span>
             <input
               value={newField.field_key}
               onChange={(e) => setNewField((prev) => ({ ...prev, field_key: e.target.value }))}
@@ -330,7 +337,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">中文名 *</span>
+            <span className="mb-1 block text-slate-600">{d.chineseName} *</span>
             <input
               value={newField.label_zh}
               onChange={(e) => setNewField((prev) => ({ ...prev, label_zh: e.target.value }))}
@@ -339,13 +346,13 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
             />
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">类型</span>
+            <span className="mb-1 block text-slate-600">{d.kind}</span>
             <select
               value={newField.field_kind}
               onChange={(e) => setNewField((prev) => ({ ...prev, field_kind: e.target.value }))}
               className="w-full rounded border border-slate-300 px-2 py-2"
             >
-              {FIELD_KINDS.map((kind) => (
+              {fieldKinds(d).map((kind) => (
                 <option key={kind.code} value={kind.code}>
                   {kind.label}
                 </option>
@@ -353,7 +360,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
             </select>
           </label>
           <label className="block text-sm">
-            <span className="mb-1 block text-slate-600">标注问题</span>
+            <span className="mb-1 block text-slate-600">{d.question}</span>
             <input
               value={newField.question}
               onChange={(e) => setNewField((prev) => ({ ...prev, question: e.target.value }))}
@@ -366,7 +373,7 @@ export default function DictionarySetEditor({ slug }: { slug: string }) {
               disabled={busy}
               className="min-h-11 rounded bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-900 disabled:opacity-50"
             >
-              添加字段
+              {d.addFieldButton}
             </button>
           </div>
         </form>
@@ -380,6 +387,7 @@ function FieldEditor({
   draft,
   editingId,
   busy,
+  copy,
   onDraft,
   onStartEdit,
   onCancelEdit,
@@ -392,6 +400,7 @@ function FieldEditor({
   draft: ItemDraft;
   editingId: number | null;
   busy: boolean;
+  copy: DictCopy;
   onDraft: (patch: Partial<ItemDraft>) => void;
   onStartEdit: (item: DictionaryItemRecord) => void;
   onCancelEdit: () => void;
@@ -423,13 +432,13 @@ function FieldEditor({
           disabled={busy}
           className="min-h-11 text-sm text-red-700 hover:underline disabled:opacity-50"
         >
-          删除字段
+          {copy.deleteField}
         </button>
       </div>
 
       <div className="mb-4 grid gap-3 md:grid-cols-3">
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">中文名</span>
+          <span className="mb-1 block text-slate-600">{copy.chineseName}</span>
           <input
             value={labelZh}
             onChange={(e) => setLabelZh(e.target.value)}
@@ -437,13 +446,13 @@ function FieldEditor({
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">类型</span>
+          <span className="mb-1 block text-slate-600">{copy.kind}</span>
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value)}
             className="w-full rounded border border-slate-300 px-2 py-2"
           >
-            {FIELD_KINDS.map((option) => (
+            {fieldKinds(copy).map((option) => (
               <option key={option.code} value={option.code}>
                 {option.label}
               </option>
@@ -451,7 +460,7 @@ function FieldEditor({
           </select>
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">标注问题</span>
+          <span className="mb-1 block text-slate-600">{copy.question}</span>
           <input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
@@ -465,7 +474,7 @@ function FieldEditor({
         onClick={() => onSaveField(labelZh, kind, question)}
         className="mb-4 min-h-11 rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
       >
-        保存字段
+        {copy.saveField}
       </button>
 
       <div className="overflow-x-auto">
@@ -473,9 +482,9 @@ function FieldEditor({
           <thead className="border-b bg-slate-100 text-slate-600">
             <tr>
               <th className="px-3 py-2">code</th>
-              <th className="px-3 py-2">中文标签</th>
-              <th className="px-3 py-2">定义</th>
-              <th className="px-3 py-2">排序</th>
+              <th className="px-3 py-2">{copy.chineseLabel}</th>
+              <th className="px-3 py-2">{copy.definition}</th>
+              <th className="px-3 py-2">{copy.sort}</th>
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
@@ -493,14 +502,14 @@ function FieldEditor({
                       className="min-h-11 text-blue-700 hover:underline"
                       onClick={() => onStartEdit(item)}
                     >
-                      修改
+                      {copy.edit}
                     </button>
                     <button
                       type="button"
                       className="min-h-11 text-red-700 hover:underline"
                       onClick={() => onDeleteItem(item)}
                     >
-                      删除
+                      {copy.deleteItem}
                     </button>
                   </div>
                 </td>
@@ -509,7 +518,7 @@ function FieldEditor({
             {field.items.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                  该字段还没有字典项。
+                  {copy.noItems}
                 </td>
               </tr>
             )}
@@ -527,7 +536,7 @@ function FieldEditor({
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">中文标签 *</span>
+          <span className="mb-1 block text-slate-600">{copy.chineseLabel} *</span>
           <input
             value={draft.label_zh}
             onChange={(e) => onDraft({ label_zh: e.target.value })}
@@ -535,7 +544,7 @@ function FieldEditor({
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">定义</span>
+          <span className="mb-1 block text-slate-600">{copy.definition}</span>
           <input
             value={draft.definition}
             onChange={(e) => onDraft({ definition: e.target.value })}
@@ -543,7 +552,7 @@ function FieldEditor({
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-600">排序</span>
+          <span className="mb-1 block text-slate-600">{copy.sort}</span>
           <input
             value={draft.sort_order}
             onChange={(e) => onDraft({ sort_order: e.target.value })}
@@ -559,7 +568,7 @@ function FieldEditor({
           onClick={onSaveItem}
           className="min-h-11 rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {editingId ? "保存修改" : "添加字典项"}
+          {editingId ? copy.saveEdit : copy.addItem}
         </button>
         {editingId && (
           <button
@@ -567,7 +576,7 @@ function FieldEditor({
             onClick={onCancelEdit}
             className="min-h-11 rounded border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
           >
-            取消修改
+            {copy.cancelEdit}
           </button>
         )}
       </div>

@@ -2,31 +2,34 @@ import Link from "next/link";
 
 import { layerCompleteness } from "@/lib/completeness";
 import { listVideosDb } from "@/lib/data/videos";
+import { getMessages } from "@/lib/locale";
+import { contentLabel } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
 
 export default async function VideosPage() {
+  const { locale, m } = await getMessages();
   let data;
   let error: string | null = null;
   try {
     data = await listVideosDb(1, 50);
   } catch (e) {
-    error = e instanceof Error ? e.message : "无法连接 API";
+    error = e instanceof Error ? e.message : m.videos.apiError;
     data = { items: [], total: 0, page: 1, page_size: 50 };
   }
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">视频列表</h1>
+        <h1 className="text-2xl font-semibold">{m.videos.title}</h1>
         <Link href="/videos/new" className="rounded bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700">
-          添加视频
+          {m.videos.add}
         </Link>
       </div>
 
       {error && (
         <p className="mb-4 rounded bg-amber-50 p-3 text-sm text-amber-900">
-          {error} — 请确认已配置 DATABASE_URL（Vercel 环境变量或 web/.env.local），见 docs/web_local_dev.md。
+          {error} — {m.dbHint}
         </p>
       )}
 
@@ -35,16 +38,16 @@ export default async function VideosPage() {
           <thead className="border-b bg-slate-100 text-slate-600">
             <tr>
               <th className="px-3 py-2">ID</th>
-              <th className="px-3 py-2">标题</th>
-              <th className="px-3 py-2">平台</th>
-              <th className="px-3 py-2">作者</th>
-              <th className="px-3 py-2">发布</th>
-              <th className="px-3 py-2">内容类型</th>
-              <th className="px-3 py-2">信任</th>
-              <th className="px-3 py-2">元数据</th>
-              <th className="px-3 py-2">内容</th>
-              <th className="px-3 py-2">反应</th>
-              <th className="px-3 py-2">AI</th>
+              <th className="px-3 py-2">{m.videos.titleCol}</th>
+              <th className="px-3 py-2">{m.videos.platform}</th>
+              <th className="px-3 py-2">{m.videos.creator}</th>
+              <th className="px-3 py-2">{m.videos.published}</th>
+              <th className="px-3 py-2">{m.videos.contentType}</th>
+              <th className="px-3 py-2">{m.videos.trust}</th>
+              <th className="px-3 py-2">{m.layers.meta}</th>
+              <th className="px-3 py-2">{m.layers.content}</th>
+              <th className="px-3 py-2">{m.layers.viewer}</th>
+              <th className="px-3 py-2">{m.layers.ai}</th>
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
@@ -53,22 +56,22 @@ export default async function VideosPage() {
               <tr key={v.video_id} className="border-b last:border-0">
                 <td className="px-3 py-2 font-mono text-xs">{v.video_id}</td>
                 <td className="max-w-xs truncate px-3 py-2">{v.meta_title}</td>
-                <td className="px-3 py-2">{v.meta_platform}</td>
+                <td className="px-3 py-2">{m.platforms[v.meta_platform] ?? v.meta_platform}</td>
                 <td className="px-3 py-2">{v.meta_creator_name}</td>
                 <td className="px-3 py-2">{v.meta_publish_date}</td>
-                <td className="px-3 py-2">{v.content_type ?? "—"}</td>
+                <td className="px-3 py-2">{contentLabel("content_type", v.content_type, locale)}</td>
                 <td className="px-3 py-2">{v.viewer_trust_score ?? "—"}</td>
                 {layerCompleteness(v).map((layer) => (
                   <td
                     key={layer.key}
                     className={`whitespace-nowrap px-3 py-2 ${layer.missing === 0 ? "text-emerald-700" : "text-amber-800"}`}
                   >
-                    {layer.text}
+                    {layer.missing === 0 ? m.complete : m.missing(layer.missing)}
                   </td>
                 ))}
                 <td className="px-3 py-2">
                   <Link href={`/videos/${v.video_id}`} className="text-blue-600 hover:underline">
-                    详情
+                    {m.videos.detail}
                   </Link>
                 </td>
               </tr>
@@ -76,14 +79,14 @@ export default async function VideosPage() {
             {data.items.length === 0 && (
               <tr>
                 <td colSpan={12} className="px-3 py-8 text-center text-slate-500">
-                  暂无视频。添加第一条或运行 seed 脚本。
+                  {m.videos.empty}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-xs text-slate-500">共 {data.total} 条</p>
+      <p className="mt-2 text-xs text-slate-500">{m.videos.total(data.total)}</p>
     </div>
   );
 }
