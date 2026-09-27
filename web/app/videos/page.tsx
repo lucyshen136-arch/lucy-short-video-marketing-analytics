@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { layerCompleteness } from "@/lib/completeness";
 import { listVideosDb } from "@/lib/data/videos";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,10 @@ export default async function VideosPage() {
               <th className="px-3 py-2">发布</th>
               <th className="px-3 py-2">内容类型</th>
               <th className="px-3 py-2">信任</th>
+              <th className="px-3 py-2">元数据</th>
+              <th className="px-3 py-2">内容</th>
+              <th className="px-3 py-2">反应</th>
+              <th className="px-3 py-2">AI</th>
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
@@ -53,6 +58,14 @@ export default async function VideosPage() {
                 <td className="px-3 py-2">{v.meta_publish_date}</td>
                 <td className="px-3 py-2">{v.content_type ?? "—"}</td>
                 <td className="px-3 py-2">{v.viewer_trust_score ?? "—"}</td>
+                {layerCompleteness(v).map((layer) => (
+                  <td
+                    key={layer.key}
+                    className={`whitespace-nowrap px-3 py-2 ${layer.missing === 0 ? "text-emerald-700" : "text-amber-800"}`}
+                  >
+                    {layer.text}
+                  </td>
+                ))}
                 <td className="px-3 py-2">
                   <Link href={`/videos/${v.video_id}`} className="text-blue-600 hover:underline">
                     详情
@@ -62,7 +75,7 @@ export default async function VideosPage() {
             ))}
             {data.items.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
+                <td colSpan={12} className="px-3 py-8 text-center text-slate-500">
                   暂无视频。添加第一条或运行 seed 脚本。
                 </td>
               </tr>
