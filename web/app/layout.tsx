@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export const metadata: Metadata = {
   title: "Lucy 短视频研究 · 视频管理",
   description: "三层字段视频录入与管理",

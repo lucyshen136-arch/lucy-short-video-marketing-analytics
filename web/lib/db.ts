@@ -36,7 +36,7 @@ export function getPool(): Pool {
 
 export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,
-  params?: unknown[],
+  params: unknown[] = [],
 ): Promise<QueryResult<T>> {
-  return getPool().query<T>(text, params);
+  return getPool().query<T>(text, params as never);
 }
