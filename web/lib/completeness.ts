@@ -37,7 +37,7 @@ const LAYERS = [
   },
   {
     key: "viewer",
-    label: "反应",
+    label: "个人反应",
     fields: [
       "viewer_continued_watching",
       "viewer_memory_score",
@@ -47,7 +47,7 @@ const LAYERS = [
   },
   {
     key: "ai",
-    label: "AI",
+    label: "AI标注",
     fields: [
       "ai_content_type",
       "ai_hook_type",
@@ -66,12 +66,26 @@ const LAYERS = [
   fields: readonly (keyof VideoRecord)[];
 }[];
 
+export type CompletenessLayer = {
+  key: string;
+  label: string;
+  fields: readonly string[];
+};
+
 export type LayerCompleteness = {
-  key: (typeof LAYERS)[number]["key"];
+  key: string;
   label: string;
   missing: number;
   text: string;
 };
+
+function readField(video: VideoRecord, key: string): unknown {
+  const column = video[key as keyof VideoRecord];
+  if (isCollected(column)) return column;
+  const extra = video.extra;
+  if (extra && Object.prototype.hasOwnProperty.call(extra, key)) return extra[key];
+  return column;
+}
 
 function isCollected(value: unknown): boolean {
   if (value === null || value === undefined) return false;
@@ -79,9 +93,13 @@ function isCollected(value: unknown): boolean {
   return true;
 }
 
-export function layerCompleteness(video: VideoRecord): LayerCompleteness[] {
-  return LAYERS.map((layer) => {
-    const missing = layer.fields.filter((field) => !isCollected(video[field])).length;
+export function defaultCompletenessLayers(): CompletenessLayer[] {
+  return LAYERS.map((layer) => ({ key: layer.key, label: layer.label, fields: layer.fields }));
+}
+
+export function layerCompleteness(video: VideoRecord, layers: readonly CompletenessLayer[] = LAYERS): LayerCompleteness[] {
+  return layers.map((layer) => {
+    const missing = layer.fields.filter((field) => !isCollected(readField(video, field))).length;
     return {
       key: layer.key,
       label: layer.label,
@@ -92,7 +110,7 @@ export function layerCompleteness(video: VideoRecord): LayerCompleteness[] {
 }
 
 export type LayerQuality = {
-  key: LayerCompleteness["key"];
+  key: string;
   label: string;
   fieldCount: number;
   completeVideos: number;
@@ -105,12 +123,15 @@ export type CollectionSummary = {
   layers: LayerQuality[];
 };
 
-export function collectionSummary(videos: VideoRecord[]): CollectionSummary {
-  const layers = LAYERS.map((layer) => {
+export function collectionSummary(
+  videos: VideoRecord[],
+  source: readonly CompletenessLayer[] = LAYERS,
+): CollectionSummary {
+  const layers = source.map((layer) => {
     let completeVideos = 0;
     let missingFields = 0;
     for (const video of videos) {
-      const missing = layer.fields.filter((field) => !isCollected(video[field])).length;
+      const missing = layer.fields.filter((field) => !isCollected(readField(video, field))).length;
       missingFields += missing;
       if (missing === 0) completeVideos += 1;
     }
@@ -122,6 +143,6 @@ export function collectionSummary(videos: VideoRecord[]): CollectionSummary {
       missingFields,
     };
   });
-  const fullyComplete = videos.filter((video) => layerCompleteness(video).every((layer) => layer.missing === 0)).length;
+  const fullyComplete = videos.filter((video) => layerCompleteness(video, source).every((layer) => layer.missing === 0)).length;
   return { total: videos.length, fullyComplete, layers };
 }

@@ -9,7 +9,7 @@ type Ctx = { params: Promise<{ kind: string }> };
 export async function GET(_request: Request, { params }: Ctx) {
   try {
     const { kind } = await params;
-    if (kind !== "content" && kind !== "viewer") {
+    if (kind !== "content" && kind !== "viewer" && kind !== "ai") {
       return jsonError("Not found", 404);
     }
     return jsonOk(await getLabelDictionaryDb(kind));

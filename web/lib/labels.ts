@@ -1,6 +1,7 @@
 import type { Locale } from "@/lib/i18n";
 import contentDictionary from "../data/content_label_dictionary.json";
 import viewerDictionary from "../data/viewer_label_dictionary.json";
+import aiDictionary from "../data/ai_label_dictionary.json";
 
 type Option = { code?: string; score?: number; label_zh: string };
 type Field = { values?: Option[]; sentinel_values?: Option[]; anchors?: Option[] };
@@ -8,6 +9,24 @@ type Dictionary = { fields: Record<string, Field> };
 
 const contentFields = (contentDictionary as Dictionary).fields;
 const viewerFields = (viewerDictionary as Dictionary).fields;
+const aiFields = (aiDictionary as Dictionary).fields;
+
+const AI_ALIAS: Record<string, string> = {
+  ai_content_type: "content_type",
+  ai_hook_type: "content_hook_type",
+  ai_narrative_structure: "content_narrative_structure",
+  ai_value_proposition: "content_value_proposition",
+  ai_persuasion: "content_persuasion",
+  ai_evidence_type: "content_evidence_type",
+  ai_funnel_stage: "content_funnel_stage",
+  ai_cta_type: "content_cta_type",
+};
+
+function fieldOptions(field: string): Option[] {
+  if (aiFields[field]) return options(aiFields, field);
+  if (viewerFields[field]) return options(viewerFields, field);
+  return options(contentFields, field);
+}
 
 function options(fields: Record<string, Field>, field: string): Option[] {
   const meta = fields[field];
@@ -92,10 +111,16 @@ const EN: Record<string, Record<string, string>> = {
     "4": "Strong intent",
     "5": "Ready to act",
   },
+  ai_label_status: {
+    not_labeled: "Not labeled",
+    labeled: "Labeled",
+    needs_review: "Needs review",
+    failed: "Labeling failed",
+  },
 };
 
 function localized(field: string, key: string, zhLabel: string | undefined, locale: Locale): string {
-  if (locale === "en") return EN[field]?.[key] ?? zhLabel ?? key;
+  if (locale === "en") return EN[field]?.[key] ?? EN[AI_ALIAS[field] ?? ""]?.[key] ?? zhLabel ?? key;
   return zhLabel ?? key;
 }
 
@@ -105,7 +130,7 @@ export function optionDisplay(field: string, code: string, labelZh: string, loca
 
 export function contentLabel(field: string, code: string | null | undefined, locale: Locale = "zh"): string {
   if (!code) return "—";
-  const match = options(contentFields, field).find((item) => item.code === code);
+  const match = fieldOptions(field).find((item) => item.code === code);
   return localized(field, code, match?.label_zh, locale);
 }
 

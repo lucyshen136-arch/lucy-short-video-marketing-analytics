@@ -1,7 +1,8 @@
 import { Bars } from "@/components/analysis/Bars";
 import { MIN_PAIRS, aiAgreement, associationsByPlatform, deriveMetrics, formatCoefficient, formatRate } from "@/lib/analysis";
-import { collectionSummary } from "@/lib/completeness";
+import { collectionSummary, defaultCompletenessLayers, type CompletenessLayer } from "@/lib/completeness";
 import { listAllVideosDb } from "@/lib/data/videos";
+import { completenessFromModel, getVideoModelDb } from "@/lib/data/video-model";
 import { getMessages } from "@/lib/locale";
 import { contentLabel, viewerEnumLabel } from "@/lib/labels";
 import type { Locale } from "@/lib/i18n";
@@ -29,13 +30,15 @@ export default async function AnalysisPage() {
   const a = m.analysis;
   let videos: VideoRecord[] = [];
   let error: string | null = null;
+  let layers: CompletenessLayer[] = defaultCompletenessLayers();
   try {
     videos = await listAllVideosDb();
+    layers = completenessFromModel(await getVideoModelDb());
   } catch (e) {
     error = e instanceof Error ? e.message : a.dbError;
   }
 
-  const summary = collectionSummary(videos);
+  const summary = collectionSummary(videos, layers);
   const derived = videos.map((video) => ({ video, metrics: deriveMetrics(video) }));
   const associations = associationsByPlatform(videos);
   const agreement = aiAgreement(videos);
@@ -79,7 +82,7 @@ export default async function AnalysisPage() {
               <tbody>
                 {summary.layers.map((layer) => (
                   <tr key={layer.key} className="border-b last:border-0">
-                    <td className="px-3 py-2">{m.layers[layer.key]}</td>
+                    <td className="px-3 py-2">{layer.label}</td>
                     <td className="px-3 py-2">{layer.fieldCount}</td>
                     <td className="px-3 py-2">
                       {layer.completeVideos} / {summary.total}
@@ -93,7 +96,7 @@ export default async function AnalysisPage() {
           <Bars
             empty={a.noChartValues}
             items={summary.layers.map((layer) => ({
-              label: m.layers[layer.key],
+              label: layer.label,
               value: layer.completeVideos,
               max: qualityMax,
               caption: a.completeCaption(layer.completeVideos, summary.total),

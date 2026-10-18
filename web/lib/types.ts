@@ -37,6 +37,7 @@ export type VideoRecord = {
   ai_funnel_stage: string | null;
   ai_cta_type: string | null;
   ai_label_status: string | null;
+  extra?: Record<string, string | number | null> | null;
   created_at: string;
   updated_at: string;
 };

@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { ensureAppSchema } from "@/lib/schema";
 import type { VideoListResponse, VideoRecord } from "@/lib/types";
 
 const VIDEO_COLUMNS = [
@@ -53,7 +54,24 @@ function mapVideo(row: Record<string, unknown>): VideoRecord {
   if (out.meta_publish_date) {
     out.meta_publish_date = String(out.meta_publish_date).slice(0, 10);
   }
+  if (typeof out.extra === "string") {
+    try {
+      out.extra = JSON.parse(out.extra) as VideoRecord["extra"];
+    } catch {
+      out.extra = null;
+    }
+  }
   return out;
+}
+
+function extraFrom(payload: Record<string, unknown>): Record<string, unknown> | null {
+  const extra: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (!WRITABLE.includes(key as (typeof WRITABLE)[number]) && key !== "extra" && key !== "created_at" && key !== "updated_at") {
+      extra[key] = value === "" ? null : value;
+    }
+  }
+  return Object.keys(extra).length ? extra : null;
 }
 
 export class HttpError extends Error {
@@ -65,6 +83,7 @@ export class HttpError extends Error {
 }
 
 export async function listVideosDb(page = 1, pageSize = 20): Promise<VideoListResponse> {
+  await ensureAppSchema();
   const offset = (page - 1) * pageSize;
   const count = await query<{ count: string | number }>("SELECT count(*) FROM videos");
   const total = Number(count.rows[0]?.count ?? 0);
@@ -83,6 +102,7 @@ export async function listVideosDb(page = 1, pageSize = 20): Promise<VideoListRe
 }
 
 export async function listAllVideosDb(): Promise<VideoRecord[]> {
+  await ensureAppSchema();
   const result = await query(
     `SELECT * FROM videos
      ORDER BY meta_publish_date DESC, video_id ASC`,
@@ -91,6 +111,7 @@ export async function listAllVideosDb(): Promise<VideoRecord[]> {
 }
 
 export async function getVideoDb(videoId: string): Promise<VideoRecord> {
+  await ensureAppSchema();
   const result = await query("SELECT * FROM videos WHERE video_id = $1", [videoId]);
   if (!result.rowCount) {
     throw new HttpError(404, "Video not found");
@@ -117,14 +138,17 @@ function requireCreate(payload: Record<string, unknown>) {
 }
 
 export async function createVideoDb(payload: Record<string, unknown>): Promise<VideoRecord> {
+  await ensureAppSchema();
   requireCreate(payload);
   const existing = await query("SELECT video_id FROM videos WHERE video_id = $1", [payload.video_id]);
   if (existing.rowCount) {
     throw new HttpError(409, "video_id already exists");
   }
-  const cols = WRITABLE.filter((col) => col === "video_id" || col in payload);
-  const values = cols.map((col) => (payload[col] === "" ? null : (payload[col] ?? null)));
-  const placeholders = cols.map((_, i) => `$${i + 1}`);
+  const extra = extraFrom(payload);
+  const cols: string[] = WRITABLE.filter((col) => col === "video_id" || col in payload);
+  if (extra) cols.push("extra");
+  const values = cols.map((col) => (col === "extra" ? JSON.stringify(extra) : payload[col] === "" ? null : (payload[col] ?? null)));
+  const placeholders = cols.map((col, i) => (col === "extra" ? `$${i + 1}::jsonb` : `$${i + 1}`));
   const result = await query(
     `INSERT INTO videos (${cols.join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING *`,
     values,
@@ -133,18 +157,21 @@ export async function createVideoDb(payload: Record<string, unknown>): Promise<V
 }
 
 export async function updateVideoDb(videoId: string, payload: Record<string, unknown>): Promise<VideoRecord> {
+  await ensureAppSchema();
   if (!String(payload.selection_reason ?? "").trim()) {
     throw new HttpError(400, "selection_reason is required");
   }
   if (payload.meta_platform && !PLATFORMS.has(String(payload.meta_platform))) {
     throw new HttpError(400, "meta_platform must be douyin, xiaohongshu, or bilibili");
   }
-  const cols = WRITABLE.filter((col) => col !== "video_id" && col in payload);
+  const extra = extraFrom(payload);
+  const cols: string[] = WRITABLE.filter((col) => col !== "video_id" && col in payload);
+  if (extra) cols.push("extra");
   if (!cols.length) {
     return getVideoDb(videoId);
   }
-  const assignments = cols.map((col, i) => `${col} = $${i + 1}`);
-  const values = cols.map((col) => (payload[col] === "" ? null : (payload[col] ?? null)));
+  const assignments = cols.map((col, i) => (col === "extra" ? `extra = $${i + 1}::jsonb` : `${col} = $${i + 1}`));
+  const values = cols.map((col) => (col === "extra" ? JSON.stringify(extra) : payload[col] === "" ? null : (payload[col] ?? null)));
   values.push(videoId);
   const result = await query(
     `UPDATE videos SET ${assignments.join(", ")}, updated_at = now()

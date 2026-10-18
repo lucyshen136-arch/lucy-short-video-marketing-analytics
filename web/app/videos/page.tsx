@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { layerCompleteness } from "@/lib/completeness";
+import { defaultCompletenessLayers, layerCompleteness, type CompletenessLayer } from "@/lib/completeness";
+import { completenessFromModel, getVideoModelDb } from "@/lib/data/video-model";
 import { listVideosDb } from "@/lib/data/videos";
 import { getMessages } from "@/lib/locale";
 import { contentLabel } from "@/lib/labels";
@@ -11,8 +12,10 @@ export default async function VideosPage() {
   const { locale, m } = await getMessages();
   let data;
   let error: string | null = null;
+  let layers: CompletenessLayer[] = defaultCompletenessLayers();
   try {
     data = await listVideosDb(1, 50);
+    layers = completenessFromModel(await getVideoModelDb());
   } catch (e) {
     error = e instanceof Error ? e.message : m.videos.apiError;
     data = { items: [], total: 0, page: 1, page_size: 50 };
@@ -44,10 +47,9 @@ export default async function VideosPage() {
               <th className="px-3 py-2">{m.videos.published}</th>
               <th className="px-3 py-2">{m.videos.contentType}</th>
               <th className="px-3 py-2">{m.videos.trust}</th>
-              <th className="px-3 py-2">{m.layers.meta}</th>
-              <th className="px-3 py-2">{m.layers.content}</th>
-              <th className="px-3 py-2">{m.layers.viewer}</th>
-              <th className="px-3 py-2">{m.layers.ai}</th>
+              {layers.map((layer) => (
+                <th key={layer.key} className="px-3 py-2">{layer.label}</th>
+              ))}
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
@@ -61,7 +63,7 @@ export default async function VideosPage() {
                 <td className="px-3 py-2">{v.meta_publish_date}</td>
                 <td className="px-3 py-2">{contentLabel("content_type", v.content_type, locale)}</td>
                 <td className="px-3 py-2">{v.viewer_trust_score ?? "—"}</td>
-                {layerCompleteness(v).map((layer) => (
+                {layerCompleteness(v, layers).map((layer) => (
                   <td
                     key={layer.key}
                     className={`whitespace-nowrap px-3 py-2 ${layer.missing === 0 ? "text-emerald-700" : "text-amber-800"}`}
@@ -78,7 +80,7 @@ export default async function VideosPage() {
             ))}
             {data.items.length === 0 && (
               <tr>
-                <td colSpan={12} className="px-3 py-8 text-center text-slate-500">
+                <td colSpan={8 + layers.length} className="px-3 py-8 text-center text-slate-500">
                   {m.videos.empty}
                 </td>
               </tr>

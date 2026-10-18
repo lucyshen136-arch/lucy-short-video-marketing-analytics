@@ -3,7 +3,7 @@ export type Locale = "zh" | "en";
 export type Messages = {
   siteName: string;
   siteDescription: string;
-  nav: { videos: string; dictionaries: string; analysis: string };
+  nav: { videos: string; analysis: string; model: string; dictionaries: string; collection: string; modelConfig: string };
   localeName: { zh: string; en: string };
   layers: { meta: string; content: string; viewer: string; ai: string };
   complete: string;
@@ -261,7 +261,7 @@ function formulas(locale: Locale): Messages["analysis"]["formulaRows"] {
 const zh: Messages = {
   siteName: "短视频营销分析平台",
   siteDescription: "短视频采集、标注与分析",
-  nav: { videos: "视频列表", dictionaries: "数据字典", analysis: "数据分析" },
+  nav: { videos: "视频列表", analysis: "数据分析", model: "视频模型", dictionaries: "数据字典", collection: "数据采集", modelConfig: "模型配置" },
   localeName: { zh: "中文", en: "EN" },
   layers: { meta: "元数据", content: "内容", viewer: "反应", ai: "AI" },
   complete: "完整",
@@ -491,7 +491,7 @@ const zh: Messages = {
 const en: Messages = {
   siteName: "Short-video marketing analytics",
   siteDescription: "Collect, label, and analyze short videos",
-  nav: { videos: "Videos", dictionaries: "Dictionaries", analysis: "Analysis" },
+  nav: { videos: "Videos", analysis: "Analysis", model: "Video model", dictionaries: "Dictionaries", collection: "Collection", modelConfig: "Model config" },
   localeName: { zh: "中文", en: "EN" },
   layers: { meta: "Metadata", content: "Content", viewer: "Reaction", ai: "AI" },
   complete: "Complete",

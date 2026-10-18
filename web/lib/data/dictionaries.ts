@@ -1,5 +1,6 @@
 import contentDictionary from "../../data/content_label_dictionary.json";
 import viewerDictionary from "../../data/viewer_label_dictionary.json";
+import aiDictionary from "../../data/ai_label_dictionary.json";
 import { query } from "@/lib/db";
 import { parseLabelDictionary } from "@/lib/dictionary-import";
 import type {
@@ -45,6 +46,10 @@ type ItemRow = {
 };
 
 export async function listDictionarySetsDb(): Promise<DictionarySetSummary[]> {
+  const existing = await query("SELECT slug FROM dictionary_sets WHERE slug = 'ai'");
+  if (!existing.rowCount) {
+    await upsertParsed(parseLabelDictionary("ai", "AI标注", aiDictionary as Record<string, unknown>));
+  }
   const result = await query<SetRow & { field_count: string | number; item_count: string | number }>(
     `SELECT s.*,
             (SELECT count(*) FROM dictionary_fields f WHERE f.set_id = s.id) AS field_count,
@@ -294,13 +299,13 @@ function setAsLabelJson(set: DictionarySetRecord): LabelDictionary & Record<stri
   };
 }
 
-export async function getLabelDictionaryDb(slug: "content" | "viewer") {
+export async function getLabelDictionaryDb(slug: "content" | "viewer" | "ai") {
   try {
     const set = await getDictionarySetDb(slug);
     return setAsLabelJson(set);
   } catch (error) {
     if (error instanceof HttpError && error.status === 404) {
-      const payload = slug === "content" ? contentDictionary : viewerDictionary;
+      const payload = slug === "content" ? contentDictionary : slug === "ai" ? aiDictionary : viewerDictionary;
       return payload as unknown as LabelDictionary;
     }
     throw error;
@@ -399,6 +404,7 @@ export async function importProjectDictionariesDb(): Promise<DictionarySetSummar
   const sources = [
     { slug: "content", name: "内容与营销", payload: contentDictionary as Record<string, unknown> },
     { slug: "viewer", name: "个人反应", payload: viewerDictionary as Record<string, unknown> },
+    { slug: "ai", name: "AI标注", payload: aiDictionary as Record<string, unknown> },
   ];
   for (const source of sources) {
     await upsertParsed(parseLabelDictionary(source.slug, source.name, source.payload));
