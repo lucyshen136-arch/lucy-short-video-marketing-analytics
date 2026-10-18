@@ -353,6 +353,7 @@ export default function VideoForm({ mode, locale, initial, onSubmit, onDelete }:
       ))}
 
       <div className="flex flex-wrap gap-3">
+        <button
           type="submit"
           disabled={busy}
           className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
