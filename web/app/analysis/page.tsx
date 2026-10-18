@@ -5,6 +5,7 @@ import { listAllVideosDb } from "@/lib/data/videos";
 import { completenessFromModel, getVideoModelDb } from "@/lib/data/video-model";
 import { getMessages } from "@/lib/locale";
 import { contentLabel, viewerEnumLabel } from "@/lib/labels";
+import { modelLayerName } from "@/lib/model-labels";
 import type { Locale } from "@/lib/i18n";
 import type { VideoRecord } from "@/lib/types";
 
@@ -82,7 +83,7 @@ export default async function AnalysisPage() {
               <tbody>
                 {summary.layers.map((layer) => (
                   <tr key={layer.key} className="border-b last:border-0">
-                    <td className="px-3 py-2">{layer.label}</td>
+                    <td className="px-3 py-2">{modelLayerName(locale, layer.key, layer.label)}</td>
                     <td className="px-3 py-2">{layer.fieldCount}</td>
                     <td className="px-3 py-2">
                       {layer.completeVideos} / {summary.total}
@@ -96,7 +97,7 @@ export default async function AnalysisPage() {
           <Bars
             empty={a.noChartValues}
             items={summary.layers.map((layer) => ({
-              label: layer.label,
+              label: modelLayerName(locale, layer.key, layer.label),
               value: layer.completeVideos,
               max: qualityMax,
               caption: a.completeCaption(layer.completeVideos, summary.total),

@@ -20,8 +20,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale === "en" ? "en" : "zh-CN"}>
       <body>
-        <header className="border-b border-slate-200 bg-white">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-3">
             <Link href="/videos" className="font-semibold text-slate-800">
               {m.siteName}
             </Link>
@@ -50,7 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </nav>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <main className="px-5 py-6">{children}</main>
       </body>
     </html>
   );

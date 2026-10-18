@@ -79,9 +79,9 @@ function cleanUrl(value: string): string {
   try {
     url = new URL(value.trim());
   } catch {
-    throw new HttpError(400, "接口需要是完整的 https 地址");
+    throw new HttpError(400, "https_url");
   }
-  if (url.protocol !== "https:") throw new HttpError(400, "接口只接受 https");
+  if (url.protocol !== "https:") throw new HttpError(400, "https_only");
   return url.toString().replace(/\/$/, "");
 }
 
@@ -96,7 +96,7 @@ export async function createModelKeyDb(input: {
   const name = input.name.trim();
   const modelName = input.model_name.trim();
   const apiKey = input.api_key.trim();
-  if (!name || !modelName || !apiKey) throw new HttpError(400, "名称、模型和 API Key 都不能为空");
+  if (!name || !modelName || !apiKey) throw new HttpError(400, "key_required");
   const timeout = Math.max(5, Math.min(120, Number(input.timeout_seconds) || 30));
   await ensureAppSchema();
   await query(
@@ -124,7 +124,7 @@ export async function updateModelKeyDb(
   const values: unknown[] = [];
   if (input.name !== undefined) {
     const name = input.name.trim();
-    if (!name) throw new HttpError(400, "名称不能为空");
+    if (!name) throw new HttpError(400, "name_required");
     values.push(name);
     sets.push(`name = $${values.length}`);
   }
@@ -134,7 +134,7 @@ export async function updateModelKeyDb(
   }
   if (input.model_name !== undefined) {
     const modelName = input.model_name.trim();
-    if (!modelName) throw new HttpError(400, "模型不能为空");
+    if (!modelName) throw new HttpError(400, "model_required");
     values.push(modelName);
     sets.push(`model_name = $${values.length}`);
   }
@@ -157,14 +157,14 @@ export async function updateModelKeyDb(
   }
   values.push(id);
   const result = await query(`UPDATE model_api_keys SET ${sets.join(", ")} WHERE id = $${values.length}`, values);
-  if (!result.rowCount) throw new HttpError(404, "Key 不存在");
+  if (!result.rowCount) throw new HttpError(404, "key_missing");
   return listModelKeysDb();
 }
 
 export async function deleteModelKeyDb(id: number): Promise<ModelKeyPublic[]> {
   await ensureAppSchema();
   const result = await query("DELETE FROM model_api_keys WHERE id = $1", [id]);
-  if (!result.rowCount) throw new HttpError(404, "Key 不存在");
+  if (!result.rowCount) throw new HttpError(404, "key_missing");
   return listModelKeysDb();
 }
 
@@ -180,10 +180,10 @@ export async function testModelKeyDb(id: number): Promise<{ ok: boolean; message
     [id],
   );
   const row = found.rows[0];
-  if (!row) throw new HttpError(404, "Key 不存在");
+  if (!row) throw new HttpError(404, "key_missing");
   const endpoint = `${row.base_url.replace(/\/$/, "")}/chat/completions`;
   let ok = false;
-  let message = "测试失败";
+  let message = "request";
   let cool = false;
   try {
     const response = await fetch(endpoint, {
@@ -201,22 +201,23 @@ export async function testModelKeyDb(id: number): Promise<{ ok: boolean; message
     });
     if (response.ok) {
       ok = true;
-      message = "可用";
+      message = "ok";
     } else {
       cool = shouldCool(response.status) || response.status >= 500;
-      message = cool ? `鉴权、额度或超时类失败（${response.status}），已进入冷却` : `接口返回 ${response.status}`;
+      message = cool ? `cooled:${response.status}` : `http:${response.status}`;
     }
   } catch (error) {
     cool = true;
-    message = error instanceof Error && error.name === "TimeoutError" ? "超时，已进入冷却" : "请求失败，已进入冷却";
+    message = error instanceof Error && error.name === "TimeoutError" ? "timeout" : "request";
   }
   await query(
     `UPDATE model_api_keys
         SET last_used_at = now(),
             updated_at = now(),
-            cooldown_until = $2
+            enabled = CASE WHEN $2::boolean THEN TRUE ELSE enabled END,
+            cooldown_until = CASE WHEN $2::boolean THEN NULL ELSE $3::timestamptz END
       WHERE id = $1`,
-    [id, cool ? new Date(Date.now() + COOLDOWN_MS).toISOString() : null],
+    [id, ok, cool ? new Date(Date.now() + COOLDOWN_MS).toISOString() : null],
   );
   return { ok, message, keys: await listModelKeysDb() };
 }

@@ -5,6 +5,7 @@ import { getVideoModelDb, type VideoModelField } from "@/lib/data/video-model";
 import { getVideoDb, HttpError } from "@/lib/data/videos";
 import { getMessages } from "@/lib/locale";
 import { contentLabel, viewerEnumLabel, viewerScoreLabel } from "@/lib/labels";
+import { modelFieldName, modelLayerName } from "@/lib/model-labels";
 import type { Locale } from "@/lib/i18n";
 import type { VideoRecord } from "@/lib/types";
 
@@ -38,10 +39,14 @@ function displayField(video: VideoRecord, field: VideoModelField, locale: Locale
   return String(value);
 }
 
-function Item({ label, value }: { label: string; value: React.ReactNode }) {
+function isBlank(value: unknown): boolean {
+  return value == null || (typeof value === "string" && value.trim() === "");
+}
+
+function Item({ label, value, missing }: { label: string; value: React.ReactNode; missing?: boolean }) {
   return (
     <div>
-      <dt className="text-slate-500">{label}</dt>
+      <dt className={missing ? "font-medium text-amber-700" : "text-slate-500"}>{label}</dt>
       <dd className="break-words font-medium text-slate-900">{value ?? "—"}</dd>
     </div>
   );
@@ -85,17 +90,18 @@ export default async function VideoDetailPage({ params }: { params: Promise<{ vi
       </div>
 
       <Section title={d.governance}>
-        <Item label={d.selectionReason} value={video.selection_reason} />
-        <Item label="source_kind" value={video.source_kind} />
+        <Item label={d.selectionReason} value={video.selection_reason} missing={isBlank(video.selection_reason)} />
+        <Item label="source_kind" value={video.source_kind} missing={isBlank(video.source_kind)} />
       </Section>
 
       {model.layers.map((layer) => (
-        <Section key={layer.id} title={layer.name}>
+        <Section key={layer.id} title={modelLayerName(locale, layer.layer_key, layer.name)}>
           {layer.fields.map((field) => (
             <Item
               key={field.field_key}
-              label={field.label}
+              label={modelFieldName(locale, field.field_key, field.label)}
               value={displayField(video, field, locale, m.platforms)}
+              missing={isBlank(fieldValue(video, field.field_key))}
             />
           ))}
         </Section>

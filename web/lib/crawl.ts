@@ -21,10 +21,10 @@ export function assertPublicHttpUrl(raw: string): URL {
   try {
     url = new URL(raw);
   } catch {
-    throw new Error("地址需要是完整的 http 或 https 链接");
+    throw new Error("bad_url");
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error("只采集 http 或 https 公开页面");
+    throw new Error("public_only");
   }
   const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
   if (
@@ -35,7 +35,7 @@ export function assertPublicHttpUrl(raw: string): URL {
     host === "0.0.0.0" ||
     host.startsWith("127.")
   ) {
-    throw new Error("不采集本机地址");
+    throw new Error("localhost");
   }
   const parts = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
   if (parts) {
@@ -48,7 +48,7 @@ export function assertPublicHttpUrl(raw: string): URL {
       (a === 172 && b >= 16 && b <= 31) ||
       (a === 169 && b === 254);
     if (privateRange) {
-      throw new Error("不采集内网地址");
+      throw new Error("private");
     }
   }
   return url;
@@ -278,15 +278,15 @@ async function readPublicHtml(raw: string, timeoutMs: number): Promise<{ url: st
     });
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
-      if (!location) throw new Error("页面跳转缺少地址");
+      if (!location) throw new Error("redirect");
       current = assertPublicHttpUrl(new URL(location, current).toString()).toString();
       continue;
     }
-    if (!response.ok) throw new Error(`页面返回 ${response.status}`);
+    if (!response.ok) throw new Error(`http:${response.status}`);
     const html = (await response.text()).slice(0, 1_500_000);
     return { url: current, html };
   }
-  throw new Error("页面跳转次数过多");
+  throw new Error("redirects");
 }
 
 export async function collectPublicMetadata(input: {
@@ -324,8 +324,6 @@ export async function collectPublicMetadata(input: {
       ]
     : items;
   const chosen = ordered.filter((item) => item.meta_title || item.meta_public_url).slice(0, limit);
-  const note = chosen.length
-    ? `从公开页面读到 ${chosen.length} 条。只使用页面上声明的标题、链接和互动数。`
-    : "这个页面没有露出可解析的公开视频信息。";
+  const note = chosen.length ? `count:${chosen.length}` : "empty";
   return { items: chosen, note };
 }

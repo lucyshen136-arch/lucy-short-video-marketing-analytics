@@ -82,6 +82,7 @@ export const DEFAULT_MODEL: ModelLayerDef[] = [
       field("ai_evidence_type", "证据方式", "enum", false, "ai"),
       field("ai_funnel_stage", "漏斗阶段", "enum", false, "ai"),
       field("ai_cta_type", "CTA", "enum", false, "ai"),
+      field("ai_summary", "内容简介", "text"),
     ],
   },
 ];

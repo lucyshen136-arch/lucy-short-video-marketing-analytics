@@ -1,0 +1,14 @@
+---
+description: New user-facing features on this site must ship in Chinese and English.
+alwaysApply: true
+---
+
+# Bilingual UI
+
+Every new user-facing feature on this site must support Chinese and English.
+
+- Chinese is the default when the `locale` cookie is missing.
+- The navigation switch sets that cookie and reloads the current page.
+- Page chrome, empty states, errors, and known field labels must have both languages.
+- Stored free text and dictionary `label_zh` stay as written. Translate the label around them, not the user's own words.
+- Prefer the message catalog in `web/lib/i18n.ts`, or a locale branch next to the component when the copy is local to one page.

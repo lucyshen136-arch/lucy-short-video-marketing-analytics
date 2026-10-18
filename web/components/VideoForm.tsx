@@ -6,6 +6,7 @@ import { getContentDictionary, getViewerDictionary } from "@/lib/api";
 import { DEFAULT_MODEL } from "@/lib/default-model";
 import { messages, type Locale } from "@/lib/i18n";
 import { optionDisplay } from "@/lib/labels";
+import { modelFieldName, modelLayerName } from "@/lib/model-labels";
 import type { VideoModelField, VideoModelLayer } from "@/lib/data/video-model";
 import type { LabelDictionary, VideoRecord } from "@/lib/types";
 
@@ -74,6 +75,7 @@ function emptyForm(): Record<string, string> {
     ai_funnel_stage: "",
     ai_cta_type: "",
     ai_label_status: "",
+    ai_summary: "",
   };
 }
 
@@ -85,6 +87,11 @@ function toForm(record: VideoRecord): Record<string, string> {
       base[key] = "";
     } else {
       base[key] = String(val);
+    }
+  }
+  if (record.extra) {
+    for (const [key, value] of Object.entries(record.extra)) {
+      base[key] = value == null ? "" : String(value);
     }
   }
   return base;
@@ -119,6 +126,10 @@ function toPayload(form: Record<string, string>, mode: "create" | "edit") {
   return payload;
 }
 
+function titleClass(empty: boolean) {
+  return empty ? "mb-1 block font-medium text-amber-700" : "mb-1 block text-slate-600";
+}
+
 function SelectField({
   label,
   name,
@@ -138,7 +149,7 @@ function SelectField({
 }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-slate-600">{label}</span>
+      <span className={titleClass(value.trim() === "")}>{label}</span>
       <select
         name={name}
         value={value}
@@ -173,7 +184,7 @@ function TextField({
 }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block text-slate-600">
+      <span className={titleClass(value.trim() === "")}>
         {label}
         {required ? " *" : ""}
       </span>
@@ -270,7 +281,7 @@ export default function VideoForm({ mode, locale, initial, onSubmit, onDelete }:
     if (field.field_key === "meta_platform") {
       return (
         <label key={field.field_key} className="block text-sm">
-          <span className="mb-1 block text-slate-600">{field.label}{field.required ? " *" : ""}</span>
+          <span className={titleClass((form.meta_platform ?? "").trim() === "")}>{modelFieldName(locale, field.field_key, field.label)}{field.required ? " *" : ""}</span>
           <select value={form.meta_platform} onChange={(e) => onChange("meta_platform", e.target.value)} className="w-full rounded border border-slate-300 px-2 py-1.5" required={field.required}>
             {platforms.map((item) => (
               <option key={item.code} value={item.code}>{item.label}</option>
@@ -284,7 +295,7 @@ export default function VideoForm({ mode, locale, initial, onSubmit, onDelete }:
       return (
         <SelectField
           key={field.field_key}
-          label={field.label}
+          label={modelFieldName(locale, field.field_key, field.label)}
           name={field.field_key}
           value={form[field.field_key] ?? ""}
           onChange={onChange}
@@ -297,7 +308,7 @@ export default function VideoForm({ mode, locale, initial, onSubmit, onDelete }:
     return (
       <TextField
         key={field.field_key}
-        label={field.label}
+        label={modelFieldName(locale, field.field_key, field.label)}
         name={field.field_key}
         type={field.field_kind === "date" ? "date" : "text"}
         value={form[field.field_key] ?? ""}
@@ -347,7 +358,7 @@ export default function VideoForm({ mode, locale, initial, onSubmit, onDelete }:
 
       {(model ?? FALLBACK_LAYERS).map((layer) => (
         <section key={layer.id} className="rounded-lg border bg-white p-4 shadow-sm">
-          <h2 className="mb-4 text-lg font-medium">{layer.name}</h2>
+          <h2 className="mb-4 text-lg font-medium">{modelLayerName(locale, layer.layer_key, layer.name)}</h2>
           <div className="grid gap-3 md:grid-cols-2">{layer.fields.map((field) => renderModelField(field))}</div>
         </section>
       ))}

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import type { Locale } from "@/lib/i18n";
 import type { CollectionJob } from "@/lib/data/collections";
+import { explainApiError } from "@/lib/ui-notes";
 
 type Draft = { name: string; site_url: string; keyword: string; collect_count: string };
 
@@ -31,7 +32,7 @@ export default function CollectionBoard({ locale }: { locale: Locale }) {
   }
 
   useEffect(() => {
-    reload().catch((err: Error) => setError(err.message));
+    reload().catch((err: Error) => setError(explainApiError(err.message, en)));
   }, []);
 
   async function run(task: () => Promise<unknown>) {
@@ -41,7 +42,7 @@ export default function CollectionBoard({ locale }: { locale: Locale }) {
       await task();
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : en ? "Request failed" : "操作失败");
+      setError(err instanceof Error ? explainApiError(err.message, en) : en ? "Request failed" : "操作失败");
     } finally {
       setBusy(false);
     }

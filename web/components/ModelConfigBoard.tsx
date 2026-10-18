@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import type { Locale } from "@/lib/i18n";
 import type { ModelKeyPublic } from "@/lib/data/model-keys";
+import { explainApiError, keyTestMessage } from "@/lib/ui-notes";
 
 type Draft = {
   name: string;
@@ -58,7 +59,7 @@ export default function ModelConfigBoard({ locale }: { locale: Locale }) {
   }
 
   useEffect(() => {
-    reload().catch((err: Error) => setError(err.message));
+    reload().catch((err: Error) => setError(explainApiError(err.message, en)));
   }, []);
 
   async function run(task: () => Promise<unknown>) {
@@ -69,7 +70,7 @@ export default function ModelConfigBoard({ locale }: { locale: Locale }) {
       await task();
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : en ? "Request failed" : "操作失败");
+      setError(err instanceof Error ? explainApiError(err.message, en) : en ? "Request failed" : "操作失败");
     } finally {
       setBusy(false);
     }
@@ -166,7 +167,7 @@ export default function ModelConfigBoard({ locale }: { locale: Locale }) {
                     run(async () => {
                       const result = (await send(`/api/v1/model-keys/${item.id}/test`, { method: "POST" })) as { message: string; keys: ModelKeyPublic[] };
                       setKeys(result.keys);
-                      setNotice(result.message);
+                      setNotice(keyTestMessage(result.message, en));
                     })
                   }
                 >

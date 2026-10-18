@@ -80,7 +80,7 @@ export async function createCollectionJobDb(input: {
 }): Promise<CollectionJob> {
   const name = input.name.trim();
   const siteUrl = input.site_url.trim();
-  if (!name || !siteUrl) throw new HttpError(400, "名称和视频网站地址都不能为空");
+  if (!name || !siteUrl) throw new HttpError(400, "name_url_required");
   const count = Math.max(1, Math.min(20, Number(input.collect_count) || 10));
   await ensureAppSchema();
   const result = await query<CollectionJob>(
@@ -95,7 +95,7 @@ export async function createCollectionJobDb(input: {
 export async function deleteCollectionJobDb(id: number): Promise<void> {
   await ensureAppSchema();
   const result = await query("DELETE FROM collection_jobs WHERE id = $1", [id]);
-  if (!result.rowCount) throw new HttpError(404, "采集配置不存在");
+  if (!result.rowCount) throw new HttpError(404, "job_missing");
 }
 
 export async function getCollectionDetailDb(id: number): Promise<{ job: CollectionJob; batches: CollectionBatch[] }> {
@@ -105,7 +105,7 @@ export async function getCollectionDetailDb(id: number): Promise<{ job: Collecti
     [id],
   );
   const job = jobs.rows[0];
-  if (!job) throw new HttpError(404, "采集配置不存在");
+  if (!job) throw new HttpError(404, "job_missing");
   const batches = await query<Omit<CollectionBatch, "items">>(
     `SELECT id, batch_no, item_count, note, created_at
        FROM collection_batches WHERE job_id = $1 ORDER BY created_at DESC, id DESC`,
@@ -143,7 +143,7 @@ export async function runCollectionJobDb(id: number): Promise<{ job: CollectionJ
   } catch (error) {
     collected = {
       items: [],
-      note: error instanceof Error ? error.message : "采集失败",
+      note: error instanceof Error ? error.message : "collect_failed",
     };
   }
   const batch = batchNo(detail.batches.map((item) => item.batch_no));
@@ -189,7 +189,7 @@ export async function getCollectionItemDb(id: number): Promise<CollectionItem & 
     [id],
   );
   const row = result.rows[0];
-  if (!row) throw new HttpError(404, "采集记录不存在");
+  if (!row) throw new HttpError(404, "item_missing");
   return row;
 }
 
@@ -206,7 +206,7 @@ export async function updateCollectionItemDb(id: number, input: Partial<Collecte
   if (!sets.length) return;
   values.push(id);
   const result = await query(`UPDATE collection_items SET ${sets.join(", ")} WHERE id = $${values.length}`, values);
-  if (!result.rowCount) throw new HttpError(404, "采集记录不存在");
+  if (!result.rowCount) throw new HttpError(404, "item_missing");
 }
 
 export async function deleteCollectionItemDb(id: number): Promise<void> {
@@ -241,19 +241,19 @@ export async function importCollectionItemsDb(ids: number[]): Promise<{ imported
     try {
       item = await getCollectionItemDb(id);
     } catch {
-      skipped.push({ id, reason: "记录不存在" });
+      skipped.push({ id, reason: "not_found" });
       continue;
     }
     if (item.imported_video_id) {
-      skipped.push({ id, reason: "已经在视频列表里" });
+      skipped.push({ id, reason: "already_imported" });
       continue;
     }
     if (!item.meta_title || !item.meta_public_url) {
-      skipped.push({ id, reason: "缺少标题或链接" });
+      skipped.push({ id, reason: "missing_title" });
       continue;
     }
     if (!item.meta_platform || !["douyin", "xiaohongshu", "bilibili"].includes(item.meta_platform)) {
-      skipped.push({ id, reason: "请先把平台改成抖音、小红书或 Bilibili" });
+      skipped.push({ id, reason: "platform" });
       continue;
     }
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
@@ -280,7 +280,7 @@ export async function importCollectionItemsDb(ids: number[]): Promise<{ imported
       await query("UPDATE collection_items SET imported_video_id = $1 WHERE id = $2", [video.video_id, id]);
       imported.push(video.video_id);
     } catch (error) {
-      skipped.push({ id, reason: error instanceof Error ? error.message : "导入失败" });
+      skipped.push({ id, reason: "import_failed" });
     }
   }
   return { imported, skipped };

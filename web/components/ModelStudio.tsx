@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 
 import type { Locale } from "@/lib/i18n";
+import { englishFieldName, englishLayerName, modelFieldName, modelKindName, modelLayerName } from "@/lib/model-labels";
+import { explainApiError } from "@/lib/ui-notes";
 import type { VideoModelField, VideoModelLayer } from "@/lib/data/video-model";
 
 const KINDS = ["text", "number", "date", "datetime", "url", "enum"] as const;
@@ -29,7 +31,7 @@ export default function ModelStudio({ locale }: { locale: Locale }) {
   }
 
   useEffect(() => {
-    reload().catch((err: Error) => setError(err.message));
+    reload().catch((err: Error) => setError(explainApiError(err.message, en)));
   }, []);
 
   async function run(task: () => Promise<unknown>) {
@@ -39,7 +41,7 @@ export default function ModelStudio({ locale }: { locale: Locale }) {
       await task();
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : en ? "Request failed" : "操作失败");
+      setError(err instanceof Error ? explainApiError(err.message, en) : en ? "Request failed" : "操作失败");
     } finally {
       setBusy(false);
     }
@@ -77,14 +79,17 @@ export default function ModelStudio({ locale }: { locale: Locale }) {
               <label className="block text-sm">
                 <span className="mb-1 block text-slate-500">{en ? "Layer name" : "层名称"}</span>
                 <input
-                  defaultValue={layer.name}
-                  key={`${layer.id}-${layer.name}`}
+                  defaultValue={modelLayerName(locale, layer.layer_key, layer.name)}
+                  key={`${layer.id}-${layer.name}-${locale}`}
                   onBlur={(event) => {
-                    if (event.target.value.trim() && event.target.value.trim() !== layer.name) {
+                    const value = event.target.value.trim();
+                    const english = englishLayerName(layer.layer_key);
+                    const next = en && english && value === english ? layer.name : value;
+                    if (next && next !== layer.name) {
                       void run(() =>
                         send(`/api/v1/model/layers/${layer.id}`, {
                           method: "PATCH",
-                          body: JSON.stringify({ name: event.target.value }),
+                          body: JSON.stringify({ name: next }),
                         }),
                       );
                     }
@@ -97,7 +102,7 @@ export default function ModelStudio({ locale }: { locale: Locale }) {
                 disabled={busy}
                 className="text-sm text-red-700 hover:underline disabled:opacity-50"
                 onClick={() => {
-                  if (window.confirm(en ? `Delete layer ${layer.name}?` : `删除层「${layer.name}」？`)) {
+                  if (window.confirm(en ? `Delete layer ${modelLayerName(locale, layer.layer_key, layer.name)}?` : `删除层「${layer.name}」？`)) {
                     void run(() => send(`/api/v1/model/layers/${layer.id}`, { method: "DELETE" }));
                   }
                 }}
@@ -141,7 +146,7 @@ export default function ModelStudio({ locale }: { locale: Locale }) {
               <input value={draft.label} onChange={(event) => setDrafts((prev) => ({ ...prev, [layer.id]: { ...draft, label: event.target.value } }))} placeholder={en ? "Field name" : "字段名称"} className="rounded border border-slate-300 px-2 py-2 text-sm" required />
               <select value={draft.field_kind} onChange={(event) => setDrafts((prev) => ({ ...prev, [layer.id]: { ...draft, field_kind: event.target.value } }))} className="rounded border border-slate-300 px-2 py-2 text-sm">
                 {KINDS.map((kind) => (
-                  <option key={kind} value={kind}>{kind}</option>
+                  <option key={kind} value={kind}>{modelKindName(locale, kind)}</option>
                 ))}
               </select>
               <select value={draft.dictionary_slug} onChange={(event) => setDrafts((prev) => ({ ...prev, [layer.id]: { ...draft, dictionary_slug: event.target.value } }))} className="rounded border border-slate-300 px-2 py-2 text-sm">
@@ -174,7 +179,7 @@ function FieldRow({
   onSave: (body: { label: string; field_kind: string; required: boolean; dictionary_slug: string | null }) => void;
   onDelete: () => void;
 }) {
-  const [label, setLabel] = useState(field.label);
+  const [label, setLabel] = useState(modelFieldName(en ? "en" : "zh", field.field_key, field.label));
   const [kind, setKind] = useState(field.field_kind);
   const [dictionary, setDictionary] = useState(field.dictionary_slug ?? "");
   const [required, setRequired] = useState(field.required);
@@ -187,7 +192,7 @@ function FieldRow({
       <td className="px-3 py-2">
         <select value={kind} onChange={(event) => setKind(event.target.value)} className="rounded border border-slate-300 px-2 py-1">
           {KINDS.map((item) => (
-            <option key={item} value={item}>{item}</option>
+            <option key={item} value={item}>{modelKindName(en ? "en" : "zh", item)}</option>
           ))}
         </select>
       </td>
@@ -204,7 +209,11 @@ function FieldRow({
       </td>
       <td className="px-3 py-2">
         <div className="flex gap-3">
-          <button type="button" disabled={busy} className="text-blue-700 hover:underline disabled:opacity-50" onClick={() => onSave({ label, field_kind: kind, required, dictionary_slug: dictionary || null })}>
+          <button type="button" disabled={busy} className="text-blue-700 hover:underline disabled:opacity-50" onClick={() => {
+            const english = englishFieldName(field.field_key);
+            const next = en && english && label.trim() === english ? field.label : label;
+            onSave({ label: next, field_kind: kind, required, dictionary_slug: dictionary || null });
+          }}>
             {en ? "Save" : "保存"}
           </button>
           <button type="button" disabled={busy} className="text-red-700 hover:underline disabled:opacity-50" onClick={onDelete}>

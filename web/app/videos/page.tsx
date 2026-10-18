@@ -5,6 +5,7 @@ import { completenessFromModel, getVideoModelDb } from "@/lib/data/video-model";
 import { listVideosDb } from "@/lib/data/videos";
 import { getMessages } from "@/lib/locale";
 import { contentLabel } from "@/lib/labels";
+import { modelLayerName } from "@/lib/model-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function VideosPage() {
               <th className="px-3 py-2">{m.videos.contentType}</th>
               <th className="px-3 py-2">{m.videos.trust}</th>
               {layers.map((layer) => (
-                <th key={layer.key} className="px-3 py-2">{layer.label}</th>
+                <th key={layer.key} className="px-3 py-2">{modelLayerName(locale, layer.key, layer.label)}</th>
               ))}
               <th className="px-3 py-2"></th>
             </tr>

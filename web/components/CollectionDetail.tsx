@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import type { Locale } from "@/lib/i18n";
 import type { CollectionBatch, CollectionJob } from "@/lib/data/collections";
+import { collectionNote, explainApiError, skipReason } from "@/lib/ui-notes";
 
 async function send(path: string, init?: RequestInit) {
   const response = await fetch(path, {
@@ -33,7 +34,7 @@ export default function CollectionDetail({ locale, jobId }: { locale: Locale; jo
   }
 
   useEffect(() => {
-    reload().catch((err: Error) => setError(err.message));
+    reload().catch((err: Error) => setError(explainApiError(err.message, en)));
   }, [jobId]);
 
   function toggle(id: number) {
@@ -52,13 +53,13 @@ export default function CollectionDetail({ locale, jobId }: { locale: Locale; jo
       })) as { imported: string[]; skipped: { id: number; reason: string }[] };
       setNotice(
         en
-          ? `Added ${result.imported.length}. Skipped ${result.skipped.length}.`
-          : `已加入视频列表 ${result.imported.length} 条，跳过 ${result.skipped.length} 条。${result.skipped.map((item) => `#${item.id} ${item.reason}`).join(" ")}`,
+          ? `Added ${result.imported.length}. Skipped ${result.skipped.length}.${result.skipped.length ? ` ${result.skipped.map((item) => `#${item.id} ${skipReason(item.reason, true)}`).join(" ")}` : ""}`
+          : `已加入视频列表 ${result.imported.length} 条，跳过 ${result.skipped.length} 条。${result.skipped.map((item) => `#${item.id} ${skipReason(item.reason, false)}`).join(" ")}`,
       );
       setSelected([]);
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : en ? "Import failed" : "导入失败");
+      setError(err instanceof Error ? explainApiError(err.message, en) : en ? "Import failed" : "导入失败");
     } finally {
       setBusy(false);
     }
@@ -71,7 +72,7 @@ export default function CollectionDetail({ locale, jobId }: { locale: Locale; jo
       await send(`/api/v1/collection-items/${id}`, { method: "DELETE" });
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : en ? "Delete failed" : "删除失败");
+      setError(err instanceof Error ? explainApiError(err.message, en) : en ? "Delete failed" : "删除失败");
     } finally {
       setBusy(false);
     }
@@ -100,7 +101,7 @@ export default function CollectionDetail({ locale, jobId }: { locale: Locale; jo
         <section key={batch.id} className="rounded-lg border bg-white shadow-sm">
           <div className="border-b px-4 py-3">
             <h2 className="font-medium">{en ? "Batch" : "批次"} {batch.batch_no}</h2>
-            <p className="text-sm text-slate-500">{batch.note}</p>
+            <p className="text-sm text-slate-500">{collectionNote(batch.note, en)}</p>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">

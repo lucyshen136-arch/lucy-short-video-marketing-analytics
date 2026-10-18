@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import type { CollectedMeta } from "@/lib/crawl";
 import type { Locale } from "@/lib/i18n";
+import { explainApiError } from "@/lib/ui-notes";
 
 const FIELDS: { key: keyof CollectedMeta; label: string; labelEn: string }[] = [
   { key: "meta_platform", label: "平台", labelEn: "Platform" },
@@ -41,7 +42,7 @@ export default function CollectionItemEditor({ locale, jobId, itemId }: { locale
         setItem(next);
         setImported(row.imported_video_id ?? null);
       })
-      .catch((err: Error) => setError(err.message));
+      .catch((err: Error) => setError(explainApiError(err.message, en)));
   }, [itemId]);
 
   async function save(event: React.FormEvent) {
@@ -61,7 +62,7 @@ export default function CollectionItemEditor({ locale, jobId, itemId }: { locale
     });
     setBusy(false);
     if (!response.ok) {
-      setError(await response.text());
+      setError(explainApiError(await response.text(), en));
       return;
     }
     setSaved(true);
