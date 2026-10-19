@@ -99,9 +99,37 @@ export default function CollectionDetail({ locale, jobId }: { locale: Locale; jo
       {batches.length === 0 && <p className="rounded border border-dashed bg-white p-8 text-center text-sm text-slate-500">{en ? "No batches yet. Run collection from the card." : "还没有批次。回到卡片上点采集。"}</p>}
       {batches.map((batch) => (
         <section key={batch.id} className="rounded-lg border bg-white shadow-sm">
-          <div className="border-b px-4 py-3">
-            <h2 className="font-medium">{en ? "Batch" : "批次"} {batch.batch_no}</h2>
-            <p className="text-sm text-slate-500">{collectionNote(batch.note, en)}</p>
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b px-4 py-3">
+            <div>
+              <h2 className="font-medium">{en ? "Batch" : "批次"} {batch.batch_no}</h2>
+              <p className="text-sm text-slate-500">{collectionNote(batch.note, en)}</p>
+            </div>
+            <button
+              type="button"
+              disabled={busy}
+              className="rounded bg-red-500 px-3 py-1.5 text-sm text-white hover:bg-red-600 disabled:opacity-50"
+              onClick={() => {
+                const ok = window.confirm(
+                  en
+                    ? `Delete batch ${batch.batch_no}? Videos already in the list stay there.`
+                    : `删除批次 ${batch.batch_no}？已经加入视频列表的视频会保留。`,
+                );
+                if (!ok) return;
+                setBusy(true);
+                setError(null);
+                void send(`/api/v1/collection-batches/${batch.id}`, { method: "DELETE" })
+                  .then(async () => {
+                    setSelected((prev) => prev.filter((id) => !batch.items.some((item) => item.id === id)));
+                    await reload();
+                  })
+                  .catch((err: unknown) => {
+                    setError(err instanceof Error ? explainApiError(err.message, en) : en ? "Delete failed" : "删除失败");
+                  })
+                  .finally(() => setBusy(false));
+              }}
+            >
+              {en ? "Delete batch" : "删除批次"}
+            </button>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">

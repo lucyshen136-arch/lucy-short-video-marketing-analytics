@@ -92,6 +92,26 @@ export async function createCollectionJobDb(input: {
   return result.rows[0];
 }
 
+export async function updateCollectionJobDb(
+  id: number,
+  input: { name: string; site_url: string; keyword?: string; collect_count?: number },
+): Promise<CollectionJob> {
+  const name = input.name.trim();
+  const siteUrl = input.site_url.trim();
+  if (!name || !siteUrl) throw new HttpError(400, "name_url_required");
+  const count = Math.max(1, Math.min(20, Number(input.collect_count) || 10));
+  await ensureAppSchema();
+  const result = await query<CollectionJob>(
+    `UPDATE collection_jobs
+        SET name = $2, site_url = $3, keyword = $4, collect_count = $5
+      WHERE id = $1
+      RETURNING id, name, site_url, keyword, collect_count, created_at`,
+    [id, name, siteUrl, input.keyword?.trim() ?? "", count],
+  );
+  if (!result.rowCount) throw new HttpError(404, "job_missing");
+  return result.rows[0];
+}
+
 export async function deleteCollectionJobDb(id: number): Promise<void> {
   await ensureAppSchema();
   const result = await query("DELETE FROM collection_jobs WHERE id = $1", [id]);
@@ -207,6 +227,12 @@ export async function updateCollectionItemDb(id: number, input: Partial<Collecte
   values.push(id);
   const result = await query(`UPDATE collection_items SET ${sets.join(", ")} WHERE id = $${values.length}`, values);
   if (!result.rowCount) throw new HttpError(404, "item_missing");
+}
+
+export async function deleteCollectionBatchDb(id: number): Promise<void> {
+  await ensureAppSchema();
+  const result = await query("DELETE FROM collection_batches WHERE id = $1", [id]);
+  if (!result.rowCount) throw new HttpError(404, "batch_missing");
 }
 
 export async function deleteCollectionItemDb(id: number): Promise<void> {

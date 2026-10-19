@@ -9,6 +9,12 @@ import { explainApiError } from "@/lib/ui-notes";
 
 type Draft = { name: string; site_url: string; keyword: string; collect_count: string };
 
+const emptyDraft: Draft = { name: "", site_url: "", keyword: "", collect_count: "10" };
+
+const outlineButton = "inline-flex items-center rounded border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-50 disabled:opacity-50";
+const primaryButton = "inline-flex items-center rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50";
+const dangerButton = "inline-flex items-center rounded bg-red-500 px-4 py-1.5 text-sm text-white hover:bg-red-600 disabled:opacity-50";
+
 async function send(path: string, init?: RequestInit) {
   const response = await fetch(path, {
     ...init,
@@ -25,7 +31,8 @@ export default function CollectionBoard({ locale }: { locale: Locale }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [draft, setDraft] = useState<Draft>({ name: "", site_url: "", keyword: "", collect_count: "10" });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [draft, setDraft] = useState<Draft>(emptyDraft);
 
   async function reload() {
     setJobs((await send("/api/v1/collections")) as CollectionJob[]);
@@ -61,49 +68,111 @@ export default function CollectionBoard({ locale }: { locale: Locale }) {
       {error && <p className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <div className="grid gap-4 lg:grid-cols-2">
         {jobs.map((job) => (
-          <article key={job.id} className="rounded-lg border bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold">{job.name}</h2>
-            <p className="mt-2 break-all text-sm text-slate-500">{job.site_url}</p>
-            <dl className="mt-4 grid grid-cols-2 gap-y-3 text-sm">
-              <div>
-                <dt className="text-slate-500">{en ? "Keyword" : "关键字"}</dt>
-                <dd>{job.keyword || "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-500">{en ? "Count" : "采集数量"}</dt>
-                <dd>{job.collect_count}</dd>
-              </div>
-            </dl>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Link href={`/collections/${job.id}`} className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
-                {en ? "Details" : "采集明细"}
-              </Link>
-              <button
-                type="button"
-                disabled={busy}
-                className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-                onClick={() => run(() => send(`/api/v1/collections/${job.id}/run`, { method: "POST" }))}
-              >
-                {en ? "Collect" : "采集"}
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                className="rounded bg-red-500 px-4 py-1.5 text-sm text-white hover:bg-red-600 disabled:opacity-50"
-                onClick={() => {
-                  if (window.confirm(en ? `Delete ${job.name}?` : `删除「${job.name}」？`)) {
-                    void run(() => send(`/api/v1/collections/${job.id}`, { method: "DELETE" }));
-                  }
+          <article key={job.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            {editingId === job.id ? (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void run(async () => {
+                    await send(`/api/v1/collections/${job.id}`, {
+                      method: "PATCH",
+                      body: JSON.stringify({ ...draft, collect_count: Number(draft.collect_count) }),
+                    });
+                    setEditingId(null);
+                    setDraft(emptyDraft);
+                  });
                 }}
               >
-                {en ? "Delete" : "删除"}
-              </button>
-            </div>
+                <div className="grid gap-3 px-5 pb-6 pt-5">
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-slate-500">{en ? "Name" : "名称"}</span>
+                    <input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} className="w-full rounded border border-slate-300 px-2 py-1.5" required />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-slate-500">{en ? "Site URL" : "网站地址"}</span>
+                    <input value={draft.site_url} onChange={(event) => setDraft({ ...draft, site_url: event.target.value })} className="w-full rounded border border-slate-300 px-2 py-1.5" required />
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block text-sm">
+                      <span className="mb-1 block text-slate-500">{en ? "Keyword" : "关键字"}</span>
+                      <input value={draft.keyword} onChange={(event) => setDraft({ ...draft, keyword: event.target.value })} className="w-full rounded border border-slate-300 px-2 py-1.5" />
+                    </label>
+                    <label className="block text-sm">
+                      <span className="mb-1 block text-slate-500">{en ? "Count" : "采集数量"}</span>
+                      <input value={draft.collect_count} onChange={(event) => setDraft({ ...draft, collect_count: event.target.value })} className="w-full rounded border border-slate-300 px-2 py-1.5" />
+                    </label>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 border-t border-slate-200 px-5 py-4">
+                  <button type="submit" disabled={busy} className={primaryButton}>{en ? "Save" : "保存"}</button>
+                  <button type="button" className={outlineButton} onClick={() => { setEditingId(null); setDraft(emptyDraft); }}>{en ? "Cancel" : "取消"}</button>
+                </div>
+              </form>
+            ) : (
+              <>
+                <div className="px-5 pb-6 pt-5">
+                  <h2 className="text-base font-semibold text-slate-900">{job.name}</h2>
+                  <p className="mt-1 break-all text-sm text-slate-500">{job.site_url}</p>
+                  <dl className="mt-6 grid grid-cols-2 text-sm">
+                    <div>
+                      <dt className="text-slate-500">{en ? "Keyword" : "关键字"}</dt>
+                      <dd className="mt-1 text-slate-900">{job.keyword || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-500">{en ? "Count" : "采集数量"}</dt>
+                      <dd className="mt-1 text-slate-900">{job.collect_count}</dd>
+                    </div>
+                  </dl>
+                </div>
+                <div className="flex flex-wrap gap-2 border-t border-slate-200 px-5 py-4">
+                  <Link href={`/collections/${job.id}`} className={outlineButton}>
+                    {en ? "Details" : "采集明细"}
+                  </Link>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className={primaryButton}
+                    onClick={() => run(() => send(`/api/v1/collections/${job.id}/run`, { method: "POST" }))}
+                  >
+                    {en ? "Collect" : "采集"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className={outlineButton}
+                    onClick={() => {
+                      setCreating(false);
+                      setEditingId(job.id);
+                      setDraft({
+                        name: job.name,
+                        site_url: job.site_url,
+                        keyword: job.keyword,
+                        collect_count: String(job.collect_count),
+                      });
+                    }}
+                  >
+                    {en ? "Edit" : "编辑"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className={dangerButton}
+                    onClick={() => {
+                      if (window.confirm(en ? `Delete ${job.name}?` : `删除「${job.name}」？`)) {
+                        void run(() => send(`/api/v1/collections/${job.id}`, { method: "DELETE" }));
+                      }
+                    }}
+                  >
+                    {en ? "Delete" : "删除"}
+                  </button>
+                </div>
+              </>
+            )}
           </article>
         ))}
         {creating ? (
           <form
-            className="rounded-lg border bg-white p-5 shadow-sm"
+            className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
             onSubmit={(event) => {
               event.preventDefault();
               void run(async () => {
@@ -111,24 +180,24 @@ export default function CollectionBoard({ locale }: { locale: Locale }) {
                   method: "POST",
                   body: JSON.stringify({ ...draft, collect_count: Number(draft.collect_count) }),
                 });
-                setDraft({ name: "", site_url: "", keyword: "", collect_count: "10" });
+                setDraft(emptyDraft);
                 setCreating(false);
               });
             }}
           >
-            <div className="grid gap-3">
+            <div className="grid gap-3 px-5 pb-6 pt-5">
               <input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder={en ? "Name" : "名称"} className="rounded border border-slate-300 px-2 py-2 text-sm" required />
               <input value={draft.site_url} onChange={(event) => setDraft({ ...draft, site_url: event.target.value })} placeholder={en ? "Video site URL" : "视频网站地址"} className="rounded border border-slate-300 px-2 py-2 text-sm" required />
               <input value={draft.keyword} onChange={(event) => setDraft({ ...draft, keyword: event.target.value })} placeholder={en ? "Keyword" : "关键字"} className="rounded border border-slate-300 px-2 py-2 text-sm" />
               <input value={draft.collect_count} onChange={(event) => setDraft({ ...draft, collect_count: event.target.value })} placeholder={en ? "Count" : "采集数量"} className="rounded border border-slate-300 px-2 py-2 text-sm" />
             </div>
-            <div className="mt-4 flex gap-2">
-              <button type="submit" disabled={busy} className="rounded bg-slate-800 px-4 py-1.5 text-sm text-white disabled:opacity-50">{en ? "Create" : "创建"}</button>
-              <button type="button" onClick={() => setCreating(false)} className="rounded border border-slate-300 px-4 py-1.5 text-sm">{en ? "Cancel" : "取消"}</button>
+            <div className="flex gap-2 border-t border-slate-200 px-5 py-4">
+              <button type="submit" disabled={busy} className={primaryButton}>{en ? "Create" : "创建"}</button>
+              <button type="button" onClick={() => { setCreating(false); setDraft(emptyDraft); }} className={outlineButton}>{en ? "Cancel" : "取消"}</button>
             </div>
           </form>
         ) : (
-          <button type="button" onClick={() => setCreating(true)} className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white px-6 text-center hover:border-slate-400">
+          <button type="button" onClick={() => { setEditingId(null); setCreating(true); }} className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white px-6 text-center hover:border-slate-400">
             <span className="text-3xl text-slate-400">+</span>
             <span className="mt-3 font-semibold">{en ? "New collection" : "新建采集"}</span>
             <span className="mt-1 text-sm text-slate-500">{en ? "Name, site URL, keyword, and count." : "填写名称、网站地址、关键字和采集数量。"}</span>
