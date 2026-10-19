@@ -93,7 +93,7 @@ export default function CollectionItemEditor({ locale, jobId, itemId }: { locale
   }, [itemId]);
 
   async function save(event?: { preventDefault?: () => void }) {
-    event?.preventDefault();
+    event?.preventDefault?.();
     setBusy(true);
     setError(null);
     setSaved(false);
