@@ -219,7 +219,7 @@ async function labelCollectedBatch(items: (CollectedMeta & { ai_payload?: Stored
 
 export async function runCollectionJobDb(id: number): Promise<{ job: CollectionJob; batches: CollectionBatch[] }> {
   const detail = await getCollectionDetailDb(id);
-  let collected;
+  let collected: { items: (CollectedMeta & { ai_payload?: StoredAi | null })[]; note: string };
   try {
     collected = await collectPublicMetadata({
       siteUrl: detail.job.site_url,
