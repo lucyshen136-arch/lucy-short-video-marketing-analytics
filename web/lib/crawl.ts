@@ -12,6 +12,13 @@ export type CollectedMeta = {
   meta_share_count: number | null;
   meta_follower_count: number | null;
   meta_hashtags: string | null;
+  source_description: string | null;
+  source_comments: PublicComment[];
+};
+
+export type PublicComment = {
+  text: string;
+  heat: number;
 };
 
 const VIDEO_HREF = /\/video\/|\/note\/|\/explore\/|\/reel\/|\/watch|BV[0-9A-Za-z]{6,}|\/status\//i;
@@ -182,6 +189,136 @@ function countFor(node: Record<string, unknown>, names: string[]): number | null
   return null;
 }
 
+function textOf(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const text = decode(value);
+  if (text.length < 2 || text.length > 500) return null;
+  if (/^https?:\/\//i.test(text)) return null;
+  return text;
+}
+
+function heatOf(record: Record<string, unknown>): number {
+  for (const key of ["like_count", "likeCount", "digg_count", "diggCount", "liked_count", "up_count", "heat"]) {
+    const value = Number(record[key]);
+    if (Number.isFinite(value) && value >= 0) return value;
+  }
+  const stats = record.interactionStatistic;
+  const list = Array.isArray(stats) ? stats : stats ? [stats] : [];
+  for (const stat of list) {
+    if (!stat || typeof stat !== "object") continue;
+    const count = Number((stat as { userInteractionCount?: unknown }).userInteractionCount);
+    if (Number.isFinite(count) && count >= 0) return count;
+  }
+  return 0;
+}
+
+function pushComment(record: Record<string, unknown>, found: PublicComment[]) {
+  const text =
+    textOf(record.text) ??
+    textOf(record.content) ??
+    textOf(record.message) ??
+    textOf(record.comment);
+  if (!text) return;
+  found.push({ text, heat: heatOf(record) });
+}
+
+function looksLikeComment(record: Record<string, unknown>): boolean {
+  if (/comment/i.test(asType(record))) return true;
+  return ["like_count", "likeCount", "digg_count", "diggCount", "liked_count", "up_count", "heat"].some(
+    (key) => record[key] != null,
+  );
+}
+
+function walkComments(value: unknown, found: PublicComment[], depth: number, budget: { left: number }, inThread: boolean) {
+  if (budget.left <= 0 || depth > 6 || value == null) return;
+  budget.left -= 1;
+  if (Array.isArray(value)) {
+    for (const child of value.slice(0, 80)) walkComments(child, found, depth + 1, budget, inThread);
+    return;
+  }
+  if (typeof value !== "object") return;
+  const record = value as Record<string, unknown>;
+  if (inThread || looksLikeComment(record)) pushComment(record, found);
+  const thread = record.comment ?? record.comments ?? record.replies ?? record.reply_list;
+  if (thread) walkComments(thread, found, depth + 1, budget, true);
+  if (inThread) return;
+  for (const child of Object.values(record)) {
+    if (child && typeof child === "object" && child !== thread) walkComments(child, found, depth + 1, budget, false);
+    if (budget.left <= 0) return;
+  }
+}
+
+export function topPublicComments(html: string, extraNodes: Record<string, unknown>[] = []): PublicComment[] {
+  const found: PublicComment[] = [];
+  const budget = { left: 4000 };
+  for (const node of [...jsonLdNodes(html), ...extraNodes]) walkComments(node, found, 0, budget, false);
+  const script = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+  let scripts = 0;
+  for (const match of html.matchAll(script)) {
+    if (scripts >= 6 || budget.left <= 0) break;
+    let raw = match[1].trim();
+    if (raw.length < 20 || raw.length > 250_000) continue;
+    if (raw.includes("%7B")) {
+      try {
+        raw = decodeURIComponent(raw);
+      } catch {
+        /* keep the original script */
+      }
+    }
+    const start = Math.min(
+      ...["{", "["].map((token) => {
+        const index = raw.indexOf(token);
+        return index < 0 ? Number.POSITIVE_INFINITY : index;
+      }),
+    );
+    if (!Number.isFinite(start)) continue;
+    scripts += 1;
+    try {
+      walkComments(JSON.parse(raw.slice(start)), found, 0, budget, false);
+    } catch {
+      /* the script is not JSON */
+    }
+  }
+  const seen = new Set<string>();
+  const ranked = found
+    .sort((a, b) => b.heat - a.heat)
+    .filter((item) => {
+      const key = item.text.replace(/\s+/g, "");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  const nearby = /"(?:content|message|text)"\s*:\s*"((?:\\.|[^"\\]){2,300})"[^}]{0,220}?"(?:like_count|digg_count|liked_count|likeCount)"\s*:\s*(\d+)|"(?:like_count|digg_count|liked_count|likeCount)"\s*:\s*(\d+)[^}]{0,220}?"(?:content|message|text)"\s*:\s*"((?:\\.|[^"\\]){2,300})"/g;
+  for (const match of html.slice(0, 800_000).matchAll(nearby)) {
+    const rawText = match[1] || match[4] || "";
+    const heat = Number(match[2] || match[3] || 0);
+    const text = textOf(rawText.replace(/\\n/g, " ").replace(/\\"/g, '"'));
+    if (!text) continue;
+    ranked.push({ text, heat: Number.isFinite(heat) ? heat : 0 });
+  }
+  const again = new Set<string>();
+  return ranked
+    .sort((a, b) => b.heat - a.heat)
+    .filter((item) => {
+      const key = item.text.replace(/\s+/g, "");
+      if (again.has(key)) return false;
+      again.add(key);
+      return true;
+    })
+    .slice(0, 5);
+}
+
+function publicDescription(html: string, video: Record<string, unknown> | null): string | null {
+  const candidates = [
+    typeof video?.description === "string" ? decode(video.description) : "",
+    metaContent(html, "og:description") ?? "",
+    metaContent(html, "description") ?? "",
+    metaContent(html, "twitter:description") ?? "",
+  ].filter((item) => item.length >= 8);
+  const unique = [...new Set(candidates)].sort((a, b) => b.length - a.length);
+  return unique[0] ? unique[0].slice(0, 2000) : null;
+}
+
 function blankMeta(url: string): CollectedMeta {
   return {
     meta_platform: platformFromUrl(url),
@@ -197,6 +334,8 @@ function blankMeta(url: string): CollectedMeta {
     meta_share_count: null,
     meta_follower_count: null,
     meta_hashtags: null,
+    source_description: null,
+    source_comments: [],
   };
 }
 
@@ -224,7 +363,11 @@ export function parseDetail(html: string, pageUrl: string): CollectedMeta {
     item.meta_share_count = countFor(video, ["share"]);
     if (Array.isArray(video.keywords)) item.meta_hashtags = video.keywords.map(String).join(" ");
     else if (typeof video.keywords === "string") item.meta_hashtags = video.keywords;
+    item.source_description = publicDescription(html, video);
+  } else {
+    item.source_description = publicDescription(html, null);
   }
+  item.source_comments = topPublicComments(html, video ? [video] : []);
   return item;
 }
 

@@ -61,8 +61,8 @@ export default function CollectionBoard({ locale }: { locale: Locale }) {
         <h1 className="text-2xl font-semibold">{en ? "Collection" : "数据采集"}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
           {en
-            ? "Each card is one collection setup. Collect reads public pages for the metadata layer: title, link, creator, date, and counts the page itself declares. It does not log in or bypass access limits."
-            : "每张卡片是一套采集配置。采集会按地址、关键字和数量读取公开页面，抓取视频模型里的元数据：标题、链接、作者、日期，以及页面自己声明的数量。不登录，也不绕过访问限制。"}
+            ? "Each card is one collection setup. Collect reads the public page for metadata, the author's description, and up to five comments that the page itself shows, ranked by heat. It writes a synopsis from those sources, then fills the AI label fields from that synopsis. It does not log in or bypass access limits."
+            : "每张卡片是一套采集配置。采集读取公开页面上的元数据、作者简介，以及页面自己露出的评论，按热度取前 5 条。先据此写内容简介，再从简介里填写 AI 标注。不登录，也不绕过访问限制。"}
         </p>
       </div>
       {error && <p className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</p>}

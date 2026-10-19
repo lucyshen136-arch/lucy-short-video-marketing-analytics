@@ -69,8 +69,10 @@ const STATEMENTS = [
      meta_follower_count BIGINT,
      meta_hashtags TEXT,
      imported_video_id VARCHAR(64),
+     ai_payload JSONB,
      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
    )`,
+  `ALTER TABLE collection_items ADD COLUMN IF NOT EXISTS ai_payload JSONB`,
 ];
 
 export function ensureAppSchema(): Promise<void> {

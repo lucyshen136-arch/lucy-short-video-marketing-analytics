@@ -1,4 +1,5 @@
-import { collectPublicMetadata, type CollectedMeta } from "@/lib/crawl";
+import { collectPublicMetadata, type CollectedMeta, type PublicComment } from "@/lib/crawl";
+import { labelCollectedItem, type AiLabelDraft } from "@/lib/collect-ai";
 import { query } from "@/lib/db";
 import { ensureAppSchema } from "@/lib/schema";
 import { createVideoDb, HttpError } from "@/lib/data/videos";
@@ -17,6 +18,7 @@ export type CollectionItem = CollectedMeta & {
   batch_id: number;
   imported_video_id: string | null;
   created_at: string;
+  ai_payload: (AiLabelDraft & { source_description: string | null; source_comments: PublicComment[] }) | null;
 };
 
 export type CollectionBatch = {
@@ -135,7 +137,7 @@ export async function getCollectionDetailDb(id: number): Promise<{ job: Collecti
     ? await query<CollectionItem>(
         `SELECT id, batch_id, meta_platform, meta_public_url, meta_title, meta_creator_name, meta_publish_date,
                 meta_duration_seconds, meta_view_count, meta_like_count, meta_comment_count, meta_save_count,
-                meta_share_count, meta_follower_count, meta_hashtags, imported_video_id, created_at
+                meta_share_count, meta_follower_count, meta_hashtags, imported_video_id, ai_payload, created_at
            FROM collection_items
           WHERE batch_id = ANY($1::int[])
           ORDER BY id ASC`,
@@ -149,6 +151,70 @@ export async function getCollectionDetailDb(id: number): Promise<{ job: Collecti
       items: items.rows.filter((item) => item.batch_id === batch.id),
     })),
   };
+}
+
+type StoredAi = NonNullable<CollectionItem["ai_payload"]>;
+
+function emptyLabels(status: AiLabelDraft["ai_label_status"]): AiLabelDraft {
+  return {
+    ai_summary: null,
+    ai_content_type: null,
+    ai_hook_type: null,
+    ai_narrative_structure: null,
+    ai_value_proposition: null,
+    ai_persuasion: null,
+    ai_evidence_type: null,
+    ai_funnel_stage: null,
+    ai_cta_type: null,
+    ai_label_status: status,
+  };
+}
+
+function storeAi(item: CollectedMeta, labels: AiLabelDraft): StoredAi {
+  return {
+    ...labels,
+    source_description: item.source_description,
+    source_comments: item.source_comments ?? [],
+  };
+}
+
+async function labelCollectedBatch(items: (CollectedMeta & { ai_payload?: StoredAi | null })[]): Promise<string> {
+  const deadline = Date.now() + 40_000;
+  let labeled = 0;
+  let review = 0;
+  let failed = 0;
+  let unlabeled = 0;
+  let noKey = false;
+  for (const item of items) {
+    if (noKey || Date.now() > deadline) {
+      unlabeled += 1;
+      item.ai_payload = storeAi(item, emptyLabels("not_labeled"));
+      continue;
+    }
+    try {
+      const labels = await labelCollectedItem({
+        title: item.meta_title,
+        description: item.source_description,
+        hashtags: item.meta_hashtags,
+        comments: item.source_comments ?? [],
+      });
+      item.ai_payload = storeAi(item, labels);
+      if (labels.ai_label_status === "labeled") labeled += 1;
+      else if (labels.ai_label_status === "needs_review") review += 1;
+      else if (labels.ai_label_status === "failed") failed += 1;
+      else unlabeled += 1;
+    } catch (error) {
+      if (error instanceof HttpError && error.message === "no_model_key") {
+        noKey = true;
+        unlabeled += 1;
+        item.ai_payload = storeAi(item, emptyLabels("not_labeled"));
+        continue;
+      }
+      failed += 1;
+      item.ai_payload = storeAi(item, emptyLabels("failed"));
+    }
+  }
+  return `labeled:${labeled}|review:${review}|failed:${failed}|unlabeled:${unlabeled}${noKey ? "|no_key:1" : ""}`;
 }
 
 export async function runCollectionJobDb(id: number): Promise<{ job: CollectionJob; batches: CollectionBatch[] }> {
@@ -166,6 +232,10 @@ export async function runCollectionJobDb(id: number): Promise<{ job: CollectionJ
       note: error instanceof Error ? error.message : "collect_failed",
     };
   }
+  if (collected.items.length) {
+    const labeled = await labelCollectedBatch(collected.items);
+    collected.note = `${collected.note}|${labeled}`;
+  }
   const batch = batchNo(detail.batches.map((item) => item.batch_no));
   const inserted = await query<{ id: number }>(
     `INSERT INTO collection_batches (job_id, batch_no, item_count, note) VALUES ($1, $2, $3, $4) RETURNING id`,
@@ -176,8 +246,8 @@ export async function runCollectionJobDb(id: number): Promise<{ job: CollectionJ
       `INSERT INTO collection_items (
          batch_id, meta_platform, meta_public_url, meta_title, meta_creator_name, meta_publish_date,
          meta_duration_seconds, meta_view_count, meta_like_count, meta_comment_count, meta_save_count,
-         meta_share_count, meta_follower_count, meta_hashtags
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+         meta_share_count, meta_follower_count, meta_hashtags, ai_payload
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb)`,
       [
         inserted.rows[0].id,
         item.meta_platform,
@@ -193,6 +263,7 @@ export async function runCollectionJobDb(id: number): Promise<{ job: CollectionJ
         item.meta_share_count,
         item.meta_follower_count,
         item.meta_hashtags,
+        JSON.stringify(item.ai_payload ?? null),
       ],
     );
   }
@@ -213,7 +284,20 @@ export async function getCollectionItemDb(id: number): Promise<CollectionItem & 
   return row;
 }
 
-export async function updateCollectionItemDb(id: number, input: Partial<CollectedMeta>): Promise<void> {
+const AI_EDITABLE = [
+  "ai_summary",
+  "ai_content_type",
+  "ai_hook_type",
+  "ai_narrative_structure",
+  "ai_value_proposition",
+  "ai_persuasion",
+  "ai_evidence_type",
+  "ai_funnel_stage",
+  "ai_cta_type",
+  "ai_label_status",
+] as const;
+
+export async function updateCollectionItemDb(id: number, input: Partial<CollectedMeta> & Partial<AiLabelDraft>): Promise<void> {
   await ensureAppSchema();
   const sets: string[] = [];
   const values: unknown[] = [];
@@ -222,6 +306,21 @@ export async function updateCollectionItemDb(id: number, input: Partial<Collecte
       values.push(input[key] === "" ? null : input[key]);
       sets.push(`${key} = $${values.length}`);
     }
+  }
+  const aiKeys = AI_EDITABLE.filter((key) => input[key] !== undefined);
+  if (aiKeys.length) {
+    const current = await getCollectionItemDb(id);
+    const payload = {
+      source_description: current.ai_payload?.source_description ?? current.source_description ?? null,
+      source_comments: current.ai_payload?.source_comments ?? current.source_comments ?? [],
+      ...(current.ai_payload ?? emptyLabels("not_labeled")),
+    };
+    for (const key of aiKeys) {
+      const value = input[key];
+      payload[key] = value === "" ? null : (value as never);
+    }
+    values.push(JSON.stringify(payload));
+    sets.push(`ai_payload = $${values.length}::jsonb`);
   }
   if (!sets.length) return;
   values.push(id);
@@ -283,6 +382,7 @@ export async function importCollectionItemsDb(ids: number[]): Promise<{ imported
       continue;
     }
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
+    const ai = item.ai_payload;
     try {
       const video = await createVideoDb({
         video_id: videoIdFor(id),
@@ -302,6 +402,16 @@ export async function importCollectionItemsDb(ids: number[]): Promise<{ imported
         meta_share_count: item.meta_share_count,
         meta_follower_count: item.meta_follower_count,
         meta_hashtags: item.meta_hashtags,
+        ai_summary: ai?.ai_summary ?? null,
+        ai_content_type: ai?.ai_content_type ?? null,
+        ai_hook_type: ai?.ai_hook_type ?? null,
+        ai_narrative_structure: ai?.ai_narrative_structure ?? null,
+        ai_value_proposition: ai?.ai_value_proposition ?? null,
+        ai_persuasion: ai?.ai_persuasion ?? null,
+        ai_evidence_type: ai?.ai_evidence_type ?? null,
+        ai_funnel_stage: ai?.ai_funnel_stage ?? null,
+        ai_cta_type: ai?.ai_cta_type ?? null,
+        ai_label_status: ai?.ai_label_status ?? null,
       });
       await query("UPDATE collection_items SET imported_video_id = $1 WHERE id = $2", [video.video_id, id]);
       imported.push(video.video_id);

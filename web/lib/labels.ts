@@ -124,6 +124,15 @@ function localized(field: string, key: string, zhLabel: string | undefined, loca
   return zhLabel ?? key;
 }
 
+export function aiChoices(field: string, locale: Locale): { code: string; label: string }[] {
+  return fieldOptions(field)
+    .filter((item) => item.code)
+    .map((item) => ({
+      code: String(item.code),
+      label: optionDisplay(field, String(item.code), item.label_zh, locale),
+    }));
+}
+
 export function optionDisplay(field: string, code: string, labelZh: string, locale: Locale): string {
   return `${localized(field, code, labelZh, locale)} (${code})`;
 }

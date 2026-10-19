@@ -221,3 +221,62 @@ export async function testModelKeyDb(id: number): Promise<{ ok: boolean; message
   );
   return { ok, message, keys: await listModelKeysDb() };
 }
+
+async function rememberKeyUse(id: number, ok: boolean, cool: boolean): Promise<void> {
+  await query(
+    `UPDATE model_api_keys
+        SET last_used_at = now(),
+            updated_at = now(),
+            cooldown_until = CASE WHEN $2::boolean THEN NULL ELSE $3::timestamptz END
+      WHERE id = $1`,
+    [id, ok, cool ? new Date(Date.now() + COOLDOWN_MS).toISOString() : null],
+  );
+}
+
+export async function completeChat(prompt: string): Promise<string> {
+  const rows = (await listRows()).filter((row) => row.enabled && !cooling(row));
+  if (!rows.length) throw new HttpError(503, "no_model_key");
+  let last = "request";
+  for (const row of rows) {
+    const endpoint = `${row.base_url.replace(/\/$/, "")}/chat/completions`;
+    let ok = false;
+    let cool = false;
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        signal: AbortSignal.timeout(Math.min(row.timeout_seconds, 25) * 1000),
+        headers: {
+          Authorization: `Bearer ${row.api_key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: row.model_name,
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.2,
+        }),
+      });
+      if (!response.ok) {
+        cool = shouldCool(response.status) || response.status >= 500;
+        last = cool ? `cooled:${response.status}` : `http:${response.status}`;
+        await rememberKeyUse(row.id, false, cool);
+        continue;
+      }
+      const body = (await response.json()) as { choices?: { message?: { content?: string } }[] };
+      const text = body.choices?.[0]?.message?.content?.trim() ?? "";
+      if (!text) {
+        last = "empty";
+        await rememberKeyUse(row.id, false, false);
+        continue;
+      }
+      ok = true;
+      await rememberKeyUse(row.id, true, false);
+      return text;
+    } catch (error) {
+      cool = true;
+      last = error instanceof Error && error.name === "TimeoutError" ? "timeout" : "request";
+      await rememberKeyUse(row.id, false, true);
+    }
+    if (ok) break;
+  }
+  throw new HttpError(502, last);
+}

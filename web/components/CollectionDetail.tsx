@@ -141,6 +141,7 @@ export default function CollectionDetail({ locale, jobId }: { locale: Locale; jo
                   <th className="px-3 py-2">{en ? "Creator" : "作者"}</th>
                   <th className="px-3 py-2">{en ? "Published" : "发布"}</th>
                   <th className="px-3 py-2">{en ? "Views" : "播放"}</th>
+                  <th className="px-3 py-2">{en ? "Synopsis" : "内容简介"}</th>
                   <th className="px-3 py-2">{en ? "Video" : "视频"}</th>
                   <th className="px-3 py-2"></th>
                 </tr>
@@ -156,6 +157,7 @@ export default function CollectionDetail({ locale, jobId }: { locale: Locale; jo
                     <td className="px-3 py-2">{item.meta_creator_name || "—"}</td>
                     <td className="px-3 py-2">{item.meta_publish_date || "—"}</td>
                     <td className="px-3 py-2">{item.meta_view_count ?? "—"}</td>
+                    <td className="max-w-xs truncate px-3 py-2">{item.ai_payload?.ai_summary || "—"}</td>
                     <td className="px-3 py-2 font-mono text-xs">{item.imported_video_id || "—"}</td>
                     <td className="px-3 py-2">
                       <div className="flex gap-3 whitespace-nowrap">
@@ -168,7 +170,7 @@ export default function CollectionDetail({ locale, jobId }: { locale: Locale; jo
                 ))}
                 {batch.items.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-3 py-6 text-center text-slate-500">{en ? "This batch is empty." : "这一批没有采集到记录。"}</td>
+                    <td colSpan={9} className="px-3 py-6 text-center text-slate-500">{en ? "This batch is empty." : "这一批没有采集到记录。"}</td>
                   </tr>
                 )}
               </tbody>

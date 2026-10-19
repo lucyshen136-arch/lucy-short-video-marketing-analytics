@@ -46,7 +46,6 @@ export default async function AnalysisPage() {
   const qualityMax = Math.max(summary.total, 1);
   const contentCounts = countLabels(videos, "content_type", "content_type", locale);
   const contentMax = Math.max(1, ...contentCounts.map((item) => item.value));
-  const platforms = [...new Set(videos.map((video) => video.meta_platform))];
 
   return (
     <div className="space-y-6">
@@ -61,15 +60,14 @@ export default async function AnalysisPage() {
         </p>
       )}
 
-      <section className="rounded-lg border bg-white p-4 shadow-sm">
-        <h2 className="text-sm text-slate-500">{a.videoCount}</h2>
-        <p className="mt-1 text-3xl font-semibold text-slate-900">{summary.total}</p>
-        <p className="mt-2 text-sm text-slate-600">{a.fullyComplete(summary.fullyComplete, summary.total)}</p>
-      </section>
-
       <section className="rounded-lg border bg-white shadow-sm">
         <h2 className="border-b px-4 py-3 text-lg font-medium">{a.quality}</h2>
-        <div className="grid gap-6 p-4 md:grid-cols-2">
+        <div className="grid gap-6 p-4 lg:grid-cols-[minmax(11rem,14rem)_minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start">
+          <div>
+            <h3 className="text-sm text-slate-500">{a.videoCount}</h3>
+            <p className="mt-1 text-3xl font-semibold text-slate-900">{summary.total}</p>
+            <p className="mt-2 text-sm text-slate-600">{a.fullyComplete(summary.fullyComplete, summary.total)}</p>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b bg-slate-100 text-slate-600">
@@ -105,6 +103,19 @@ export default async function AnalysisPage() {
           />
         </div>
         <p className="px-4 pb-3 text-xs text-slate-500">{a.qualityNote}</p>
+      </section>
+
+      <section className="rounded-lg border bg-white p-4 shadow-sm">
+        <h2 className="mb-4 text-lg font-medium">{a.contentDistribution}</h2>
+        <Bars
+          empty={a.noChartValues}
+          items={contentCounts.map((item) => ({
+            label: item.label,
+            value: item.value,
+            max: contentMax,
+            caption: String(item.value),
+          }))}
+        />
       </section>
 
       <section className="rounded-lg border bg-white shadow-sm">
@@ -170,63 +181,6 @@ export default async function AnalysisPage() {
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section className="rounded-lg border bg-white p-4 shadow-sm">
-        <h2 className="mb-4 text-lg font-medium">{a.platformRates}</h2>
-        {platforms.length === 0 ? (
-          <p className="text-sm text-slate-500">{a.noRates}</p>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            {platforms.map((platform) => {
-              const rows = derived.filter((row) => row.metrics.platform === platform && row.metrics.like_rate !== null);
-              const observed = rows.flatMap((row) =>
-                [row.metrics.like_rate, row.metrics.engagement_rate].filter((value) => value !== null),
-              );
-              const max = Math.max(0.001, ...observed);
-              return (
-                <div key={platform}>
-                  <h3 className="mb-2 text-sm font-medium text-slate-700">{platformName(platform, m.platforms)}</h3>
-                  <Bars
-                    items={rows.flatMap((row) => {
-                      const bars = [
-                        {
-                          label: a.likeRateOf(row.metrics.video_id),
-                          value: row.metrics.like_rate ?? 0,
-                          max,
-                          caption: formatRate(row.metrics.like_rate),
-                        },
-                      ];
-                      if (row.metrics.engagement_rate !== null) {
-                        bars.push({
-                          label: a.engagementRateOf(row.metrics.video_id),
-                          value: row.metrics.engagement_rate,
-                          max,
-                          caption: formatRate(row.metrics.engagement_rate),
-                        });
-                      }
-                      return bars;
-                    })}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <p className="mt-3 text-xs text-slate-500">{a.rateNote}</p>
-      </section>
-
-      <section className="rounded-lg border bg-white p-4 shadow-sm">
-        <h2 className="mb-4 text-lg font-medium">{a.contentDistribution}</h2>
-        <Bars
-          empty={a.noChartValues}
-          items={contentCounts.map((item) => ({
-            label: item.label,
-            value: item.value,
-            max: contentMax,
-            caption: String(item.value),
-          }))}
-        />
       </section>
 
       <section className="rounded-lg border bg-white shadow-sm">

@@ -20,6 +20,7 @@ const API: Record<string, [string, string]> = {
   name_required: ["名称不能为空", "Name is required."],
   model_required: ["模型不能为空", "Model is required."],
   key_missing: ["Key 不存在", "Key not found."],
+  no_model_key: ["没有可用的模型 key", "No model key is available."],
   bad_kind: ["字段类型无效", "That field kind is not valid."],
   layer_name_required: ["层名称不能为空", "Layer name is required."],
   layer_missing: ["层不存在", "Layer not found."],
@@ -72,7 +73,30 @@ const SKIP: Record<string, [string, string]> = {
 export function collectionNote(note: string | null, en: boolean): string {
   if (!note) return "";
   if (note.startsWith("count:")) {
-    const count = note.slice("count:".length);
+    const bag: Record<string, string> = {};
+    for (const part of note.split("|")) {
+      const index = part.indexOf(":");
+      if (index > 0) bag[part.slice(0, index)] = part.slice(index + 1);
+    }
+    const count = bag.count ?? note.slice("count:".length);
+    if (bag.labeled || bag.review || bag.failed || bag.unlabeled || bag.no_key) {
+      const labeled = bag.labeled ?? "0";
+      const review = bag.review ?? "0";
+      const failed = bag.failed ?? "0";
+      const unlabeled = bag.unlabeled ?? "0";
+      const base = en
+        ? `Read ${count} items from the public page. Synopsis uses the author description and up to five visible comments, ranked by heat, then fills the AI labels.`
+        : `从公开页面读到 ${count} 条。内容简介汇总作者简介和页面露出的评论热度前 5 条，再据此填写 AI 标注。`;
+      const counts = en
+        ? ` Labeled ${labeled}, needs review ${review}, failed ${failed}, not labeled ${unlabeled}.`
+        : `已标注 ${labeled}，待复核 ${review}，失败 ${failed}，未标注 ${unlabeled}。`;
+      const missingKey = bag.no_key
+        ? en
+          ? " No model key was available, so AI labels were left blank."
+          : "没有可用的模型 key，AI 标注留空。"
+        : "";
+      return `${base}${counts}${missingKey}`;
+    }
     return en
       ? `Read ${count} items from the public page. Only the title, link, and counts declared on the page are used.`
       : `从公开页面读到 ${count} 条。只使用页面上声明的标题、链接和互动数。`;
