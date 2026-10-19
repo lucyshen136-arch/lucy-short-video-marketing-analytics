@@ -310,14 +310,14 @@ export async function updateCollectionItemDb(id: number, input: Partial<Collecte
   const aiKeys = AI_EDITABLE.filter((key) => input[key] !== undefined);
   if (aiKeys.length) {
     const current = await getCollectionItemDb(id);
-    const payload = {
+    const payload: Record<string, unknown> = {
       source_description: current.ai_payload?.source_description ?? current.source_description ?? null,
       source_comments: current.ai_payload?.source_comments ?? current.source_comments ?? [],
       ...(current.ai_payload ?? emptyLabels("not_labeled")),
     };
     for (const key of aiKeys) {
       const value = input[key];
-      payload[key] = value === "" ? null : (value as never);
+      payload[key] = value === "" ? null : value;
     }
     values.push(JSON.stringify(payload));
     sets.push(`ai_payload = $${values.length}::jsonb`);
