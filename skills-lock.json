@@ -1,11 +1,23 @@
 {
   "version": 1,
   "skills": {
+    "academic-writing": {
+      "source": "Apprenticew/academic-writing",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "3cac239f10ac8261146af10a5e61f7db4ee4ea243e8df3f3fd8d94330a397277"
+    },
     "brainstorming": {
       "source": "obra/superpowers",
       "sourceType": "github",
       "skillPath": "skills/brainstorming/SKILL.md",
       "computedHash": "b95dc657c5dd79caf7340ee6dead6faf2ce2d1cc613352a027fa8993966b41b7"
+    },
+    "chinese-academic-writing-assistant": {
+      "source": "gongyu0918-debug/chinese-academic-writing-skill",
+      "sourceType": "github",
+      "skillPath": "chinese-academic-writing-assistant/SKILL.md",
+      "computedHash": "50ca94546c6807d9e486207ea11a48a96efa92d439b3cd1558f9487ef2c7bb77"
     },
     "design-taste-frontend": {
       "source": "Leonxlnx/taste-skill",
@@ -49,6 +61,12 @@
       "skillPath": "skills/requesting-code-review/SKILL.md",
       "computedHash": "2abaeac1de432c76abda0ca7ba618901d2e94f8817b3650f9c523acea2d224f5"
     },
+    "research-paper-writing": {
+      "source": "Master-cai/Research-Paper-Writing-Skills",
+      "sourceType": "github",
+      "skillPath": "research-paper-writing/SKILL.md",
+      "computedHash": "12000150595a85bac589fe76cc7b9dd595a8ef8f752d3ff45b557b60bd546bc6"
+    },
     "subagent-driven-development": {
       "source": "obra/superpowers",
       "sourceType": "github",
@@ -90,6 +108,12 @@
       "sourceType": "github",
       "skillPath": "skills/verification-before-completion/SKILL.md",
       "computedHash": "b529822bdac4b197b180fe12225cff86b930b65910435103c10622df7f041651"
+    },
+    "write-reader-first-papers": {
+      "source": "ysyecust/write-reader-first-papers",
+      "sourceType": "github",
+      "skillPath": "skills/write-reader-first-papers/SKILL.md",
+      "computedHash": "4a8d4fd7f4f24961092eb28855c9e1a1939e55a9523e2957670081e449c5ae27"
     },
     "writing-plans": {
       "source": "obra/superpowers",
