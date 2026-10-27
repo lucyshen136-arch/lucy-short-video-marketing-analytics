@@ -1,7 +1,9 @@
 import { Bars } from "@/components/analysis/Bars";
 import { DerivedContrastTable } from "@/components/analysis/DerivedContrastTable";
 import { Pie } from "@/components/analysis/Pie";
+import { Sankey } from "@/components/analysis/Sankey";
 import { aiAgreement, deriveMetrics, formatRate } from "@/lib/analysis";
+import { contentReactionFlows } from "@/lib/content-reaction-sankey";
 import { collectionSummary, defaultCompletenessLayers, type CompletenessLayer } from "@/lib/completeness";
 import { listAllVideosDb } from "@/lib/data/videos";
 import { completenessFromModel, getVideoModelDb } from "@/lib/data/video-model";
@@ -46,6 +48,7 @@ export default async function AnalysisPage() {
   const agreement = aiAgreement(videos);
   const qualityMax = Math.max(summary.total, 1);
   const contentCounts = countLabels(videos, "content_type", "content_type", locale);
+  const sankey = contentReactionFlows(videos, locale);
 
   return (
     <div className="space-y-6">
@@ -182,6 +185,31 @@ export default async function AnalysisPage() {
           }))}
         />
         <p className="px-4 pb-3 text-xs text-slate-500">{a.contrastNote}</p>
+      </section>
+
+      <section className="rounded-lg border bg-white shadow-sm">
+        <h2 className="border-b px-4 py-3 text-lg font-medium">{a.sankeyTitle}</h2>
+        <p className="px-4 pt-3 text-sm text-slate-600">{a.sankeyIntro}</p>
+        <ul className="space-y-2 px-4 pt-3 text-sm text-slate-600">
+          {a.sankeyRules.map((rule) => (
+            <li key={rule.title}>
+              <span className="font-medium text-slate-800">{rule.title}</span>
+              <span className="mt-0.5 block">{rule.body}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="p-4">
+          <Sankey
+            left={sankey.left}
+            right={sankey.right}
+            links={sankey.links}
+            empty={a.sankeyEmpty}
+            fromLabel={a.sankeyFrom}
+            toLabel={a.sankeyTo}
+            countLabel={a.sankeyCount}
+            shareLabel={a.sankeyShare}
+          />
+        </div>
       </section>
 
       <section className="rounded-lg border bg-white shadow-sm">

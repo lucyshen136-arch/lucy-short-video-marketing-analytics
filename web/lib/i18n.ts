@@ -107,6 +107,14 @@ export type Messages = {
     insufficient: (n: number) => string;
     undefinedCoeff: string;
     descriptive: string;
+    sankeyTitle: string;
+    sankeyIntro: string;
+    sankeyEmpty: string;
+    sankeyFrom: string;
+    sankeyTo: string;
+    sankeyCount: string;
+    sankeyShare: string;
+    sankeyRules: { title: string; body: string }[];
     agreementTitle: string;
     agreementOverall: (rate: string, n: number) => string;
     field: string;
@@ -368,6 +376,18 @@ const zh: Messages = {
     insufficient: (n) => `样本不足（少于 ${n} 对）`,
     undefinedCoeff: "名次没有变化，系数无定义",
     descriptive: "同平台描述性关联",
+    sankeyTitle: "内容字段与个人反应的对应",
+    sankeyIntro: "线的粗细是两边都已填写的视频条数。关联不是因果。缺失的一边不进入图。",
+    sankeyEmpty: "还没有成对填写的内容字段和个人反应。",
+    sankeyFrom: "内容",
+    sankeyTo: "个人反应",
+    sankeyCount: "条数",
+    sankeyShare: "占比",
+    sankeyRules: [
+      { title: "记忆、完看 ← Hook、叙事结构", body: "开头决定停不停，故事型叙事更容易被记住、被看完。" },
+      { title: "信任 ← 证据方式、说服机制", body: "可核对的证据和清楚的说服方式，比口头承诺更让人相信。" },
+      { title: "行动意愿 ← 漏斗阶段、CTA", body: "越靠近转化、号召越明确，行动意愿越高。" },
+    ],
     agreementTitle: "人工标签与 AI 标签一致率",
     agreementOverall: (rate, n) => `总体一致率 ${rate}（已对照 ${n} 个字段）`,
     field: "字段",
@@ -601,6 +621,18 @@ const en: Messages = {
     insufficient: (n) => `Not enough pairs (fewer than ${n})`,
     undefinedCoeff: "Ranks do not vary, so the coefficient is undefined",
     descriptive: "Descriptive association within one platform",
+    sankeyTitle: "Content fields and viewer reactions",
+    sankeyIntro: "Line thickness is the number of videos with both sides filled. Association is not causation. A pair is omitted if either side is missing.",
+    sankeyEmpty: "No paired content fields and viewer reactions yet.",
+    sankeyFrom: "Content",
+    sankeyTo: "Viewer reaction",
+    sankeyCount: "Count",
+    sankeyShare: "Share",
+    sankeyRules: [
+      { title: "Memory and watching ← Hook, narrative", body: "The opening decides whether someone stays. Story-like narrative is easier to remember and finish." },
+      { title: "Trust ← Evidence, persuasion", body: "Checkable evidence and a clear persuasion path are more believable than a verbal claim." },
+      { title: "Intent to act ← Funnel stage, CTA", body: "Closer to conversion, and a clearer call to action, go with higher intent." },
+    ],
     agreementTitle: "Human vs AI label agreement",
     agreementOverall: (rate, n) => `Overall agreement ${rate} (${n} fields compared)`,
     field: "Field",
