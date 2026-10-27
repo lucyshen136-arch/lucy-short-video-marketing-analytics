@@ -244,7 +244,7 @@ export async function completeChat(prompt: string): Promise<string> {
     try {
       const response = await fetch(endpoint, {
         method: "POST",
-        signal: AbortSignal.timeout(Math.min(row.timeout_seconds, 25) * 1000),
+        signal: AbortSignal.timeout(Math.min(row.timeout_seconds, 60) * 1000),
         headers: {
           Authorization: `Bearer ${row.api_key}`,
           "Content-Type": "application/json",

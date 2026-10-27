@@ -3,7 +3,7 @@ import { handleApiError } from "@/lib/api-error";
 import { jsonOk } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 type Ctx = { params: Promise<{ id: string }> };
 

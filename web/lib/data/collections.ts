@@ -178,8 +178,14 @@ function storeAi(item: CollectedMeta, labels: AiLabelDraft): StoredAi {
   };
 }
 
+function splitInto<T>(items: T[], parts: number): T[][] {
+  const groups: T[][] = Array.from({ length: parts }, () => []);
+  items.forEach((item, index) => groups[index % parts].push(item));
+  return groups.filter((group) => group.length > 0);
+}
+
 async function labelCollectedBatch(items: (CollectedMeta & { ai_payload?: StoredAi | null })[]): Promise<string> {
-  const deadline = Date.now() + 40_000;
+  const deadline = Date.now() + 300_000;
   let labeled = 0;
   let review = 0;
   let failed = 0;
@@ -232,40 +238,45 @@ export async function runCollectionJobDb(id: number): Promise<{ job: CollectionJ
       note: error instanceof Error ? error.message : "collect_failed",
     };
   }
-  if (collected.items.length) {
-    const labeled = await labelCollectedBatch(collected.items);
-    collected.note = `${collected.note}|${labeled}`;
-  }
-  const batch = batchNo(detail.batches.map((item) => item.batch_no));
-  const inserted = await query<{ id: number }>(
-    `INSERT INTO collection_batches (job_id, batch_no, item_count, note) VALUES ($1, $2, $3, $4) RETURNING id`,
-    [id, batch, collected.items.length, collected.note],
-  );
-  for (const item of collected.items) {
-    await query(
-      `INSERT INTO collection_items (
-         batch_id, meta_platform, meta_public_url, meta_title, meta_creator_name, meta_publish_date,
-         meta_duration_seconds, meta_view_count, meta_like_count, meta_comment_count, meta_save_count,
-         meta_share_count, meta_follower_count, meta_hashtags, ai_payload
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb)`,
-      [
-        inserted.rows[0].id,
-        item.meta_platform,
-        item.meta_public_url,
-        item.meta_title,
-        item.meta_creator_name,
-        item.meta_publish_date,
-        item.meta_duration_seconds,
-        item.meta_view_count,
-        item.meta_like_count,
-        item.meta_comment_count,
-        item.meta_save_count,
-        item.meta_share_count,
-        item.meta_follower_count,
-        item.meta_hashtags,
-        JSON.stringify(item.ai_payload ?? null),
-      ],
+  const chunks = collected.items.length ? splitInto(collected.items, 5) : [[] as typeof collected.items];
+  const labeledNotes = collected.items.length
+    ? await Promise.all(chunks.map(async (chunk) => `${collected.note}|${await labelCollectedBatch(chunk)}`))
+    : [collected.note];
+  const usedNos = detail.batches.map((item) => item.batch_no);
+  for (const [index, chunk] of chunks.entries()) {
+    const note = labeledNotes[index] ?? collected.note;
+    const batch = batchNo(usedNos);
+    usedNos.push(batch);
+    const inserted = await query<{ id: number }>(
+      `INSERT INTO collection_batches (job_id, batch_no, item_count, note) VALUES ($1, $2, $3, $4) RETURNING id`,
+      [id, batch, chunk.length, note],
     );
+    for (const item of chunk) {
+      await query(
+        `INSERT INTO collection_items (
+           batch_id, meta_platform, meta_public_url, meta_title, meta_creator_name, meta_publish_date,
+           meta_duration_seconds, meta_view_count, meta_like_count, meta_comment_count, meta_save_count,
+           meta_share_count, meta_follower_count, meta_hashtags, ai_payload
+         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb)`,
+        [
+          inserted.rows[0].id,
+          item.meta_platform,
+          item.meta_public_url,
+          item.meta_title,
+          item.meta_creator_name,
+          item.meta_publish_date,
+          item.meta_duration_seconds,
+          item.meta_view_count,
+          item.meta_like_count,
+          item.meta_comment_count,
+          item.meta_save_count,
+          item.meta_share_count,
+          item.meta_follower_count,
+          item.meta_hashtags,
+          JSON.stringify(item.ai_payload ?? null),
+        ],
+      );
+    }
   }
   return getCollectionDetailDb(id);
 }

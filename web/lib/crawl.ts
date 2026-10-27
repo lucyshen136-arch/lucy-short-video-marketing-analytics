@@ -432,6 +432,20 @@ async function readPublicHtml(raw: string, timeoutMs: number): Promise<{ url: st
   throw new Error("redirects");
 }
 
+async function mapLimit<T, R>(items: T[], workers: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const index = next;
+      next += 1;
+      out[index] = await fn(items[index]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(Math.max(1, workers), Math.max(items.length, 1)) }, () => worker()));
+  return out;
+}
+
 export async function collectPublicMetadata(input: {
   siteUrl: string;
   keyword: string;
@@ -439,7 +453,7 @@ export async function collectPublicMetadata(input: {
 }): Promise<{ items: CollectedMeta[]; note: string }> {
   const limit = Math.max(1, Math.min(20, Math.floor(input.limit) || 1));
   const started = Date.now();
-  const deadline = started + 25_000;
+  const deadline = started + 60_000;
   const firstUrl = listingUrl(input.siteUrl, input.keyword);
   const page = await readPublicHtml(firstUrl, 8_000);
   const self = parseDetail(page.html, page.url);
@@ -448,17 +462,19 @@ export async function collectPublicMetadata(input: {
   if (self.meta_title && (VIDEO_HREF.test(page.url) || links.length === 0)) {
     items.push(self);
   }
-  for (const href of links) {
-    if (items.length >= limit || Date.now() > deadline) break;
+  const remaining = links.slice(0, Math.max(0, limit - items.length));
+  const details = await mapLimit(remaining, 5, async (href) => {
+    if (Date.now() > deadline) return blankMeta(href);
     try {
       const detail = await readPublicHtml(href, 6_000);
       const parsed = parseDetail(detail.html, detail.url);
       if (!parsed.meta_title) parsed.meta_title = self.meta_title;
-      items.push(parsed);
+      return parsed;
     } catch {
-      items.push(blankMeta(href));
+      return blankMeta(href);
     }
-  }
+  });
+  items.push(...details);
   const keyword = input.keyword.trim().toLowerCase();
   const ordered = keyword
     ? [
