@@ -3,22 +3,35 @@ import { modelFieldName } from "@/lib/model-labels";
 import type { Locale } from "@/lib/i18n";
 import type { VideoRecord } from "@/lib/types";
 
-const PAIRS: {
+type Pair = {
   from: keyof VideoRecord;
   fromStored: string;
   to: keyof VideoRecord;
   toStored: string;
   toKind: "enum" | "score";
-}[] = [
-  { from: "content_hook_type", fromStored: "Hook", to: "viewer_continued_watching", toStored: "完看情况", toKind: "enum" },
-  { from: "content_hook_type", fromStored: "Hook", to: "viewer_memory_score", toStored: "记忆", toKind: "score" },
-  { from: "content_narrative_structure", fromStored: "叙事结构", to: "viewer_continued_watching", toStored: "完看情况", toKind: "enum" },
-  { from: "content_narrative_structure", fromStored: "叙事结构", to: "viewer_memory_score", toStored: "记忆", toKind: "score" },
-  { from: "content_evidence_type", fromStored: "证据方式", to: "viewer_trust_score", toStored: "信任", toKind: "score" },
-  { from: "content_persuasion", fromStored: "说服机制", to: "viewer_trust_score", toStored: "信任", toKind: "score" },
-  { from: "content_funnel_stage", fromStored: "漏斗阶段", to: "viewer_action_intent_score", toStored: "行动意愿", toKind: "score" },
-  { from: "content_cta_type", fromStored: "CTA", to: "viewer_action_intent_score", toStored: "行动意愿", toKind: "score" },
-];
+};
+
+export const SANKEY_CHART_IDS = ["watching", "memory", "trust", "action"] as const;
+export type SankeyChartId = (typeof SANKEY_CHART_IDS)[number];
+
+const CHARTS: Record<SankeyChartId, Pair[]> = {
+  watching: [
+    { from: "content_hook_type", fromStored: "Hook", to: "viewer_continued_watching", toStored: "完看情况", toKind: "enum" },
+    { from: "content_narrative_structure", fromStored: "叙事结构", to: "viewer_continued_watching", toStored: "完看情况", toKind: "enum" },
+  ],
+  memory: [
+    { from: "content_hook_type", fromStored: "Hook", to: "viewer_memory_score", toStored: "记忆", toKind: "score" },
+    { from: "content_narrative_structure", fromStored: "叙事结构", to: "viewer_memory_score", toStored: "记忆", toKind: "score" },
+  ],
+  trust: [
+    { from: "content_evidence_type", fromStored: "证据方式", to: "viewer_trust_score", toStored: "信任", toKind: "score" },
+    { from: "content_persuasion", fromStored: "说服机制", to: "viewer_trust_score", toStored: "信任", toKind: "score" },
+  ],
+  action: [
+    { from: "content_funnel_stage", fromStored: "漏斗阶段", to: "viewer_action_intent_score", toStored: "行动意愿", toKind: "score" },
+    { from: "content_cta_type", fromStored: "CTA", to: "viewer_action_intent_score", toStored: "行动意愿", toKind: "score" },
+  ],
+};
 
 const LEFT_ORDER = [
   "content_hook_type",
@@ -42,6 +55,7 @@ export const FIELD_COLOR: Record<string, string> = {
 
 export type SankeyNode = { id: string; field: string; label: string; value: number; color: string };
 export type SankeyLink = { source: string; target: string; value: number; color: string };
+export type SankeyChart = { id: SankeyChartId; left: SankeyNode[]; right: SankeyNode[]; links: SankeyLink[] };
 
 function textValue(video: VideoRecord, field: keyof VideoRecord, kind: "enum" | "score"): string | null {
   const raw = video[field];
@@ -69,28 +83,17 @@ function sortNodes(nodes: SankeyNode[], order: string[]): SankeyNode[] {
   });
 }
 
-export function contentReactionFlows(videos: VideoRecord[], locale: Locale): { left: SankeyNode[]; right: SankeyNode[]; links: SankeyLink[] } {
-  const counts = new Map<string, { from: string; fromStored: string; fromValue: string; to: string; toStored: string; toKind: "enum" | "score"; toValue: string; n: number }>();
+function flowsFor(videos: VideoRecord[], locale: Locale, pairs: Pair[]): { left: SankeyNode[]; right: SankeyNode[]; links: SankeyLink[] } {
+  const counts = new Map<string, { pair: Pair; fromValue: string; toValue: string; n: number }>();
   for (const video of videos) {
-    for (const pair of PAIRS) {
+    for (const pair of pairs) {
       const fromValue = textValue(video, pair.from, "enum");
       const toValue = textValue(video, pair.to, pair.toKind);
       if (!fromValue || !toValue) continue;
       const key = `${pair.from}::${fromValue}|${pair.to}::${toValue}`;
       const row = counts.get(key);
       if (row) row.n += 1;
-      else {
-        counts.set(key, {
-          from: pair.from,
-          fromStored: pair.fromStored,
-          fromValue,
-          to: pair.to,
-          toStored: pair.toStored,
-          toKind: pair.toKind,
-          toValue,
-          n: 1,
-        });
-      }
+      else counts.set(key, { pair, fromValue, toValue, n: 1 });
     }
   }
 
@@ -98,15 +101,15 @@ export function contentReactionFlows(videos: VideoRecord[], locale: Locale): { l
   const rightMap = new Map<string, SankeyNode>();
   const links: SankeyLink[] = [];
   for (const row of counts.values()) {
-    const source = `${row.from}::${row.fromValue}`;
-    const target = `${row.to}::${row.toValue}`;
-    const color = FIELD_COLOR[row.from] ?? "#1d4ed8";
-    const leftLabel = `${modelFieldName(locale, row.from, row.fromStored)} · ${displayValue(row.from, row.fromValue, "enum", locale)}`;
-    const rightLabel = `${modelFieldName(locale, row.to, row.toStored)} · ${displayValue(row.to, row.toValue, row.toKind, locale)}`;
-    const left = leftMap.get(source) ?? { id: source, field: row.from, label: leftLabel, value: 0, color };
+    const source = `${row.pair.from}::${row.fromValue}`;
+    const target = `${row.pair.to}::${row.toValue}`;
+    const color = FIELD_COLOR[row.pair.from] ?? "#1d4ed8";
+    const leftLabel = `${modelFieldName(locale, row.pair.from, row.pair.fromStored)} · ${displayValue(row.pair.from, row.fromValue, "enum", locale)}`;
+    const rightLabel = displayValue(row.pair.to, row.toValue, row.pair.toKind, locale);
+    const left = leftMap.get(source) ?? { id: source, field: row.pair.from, label: leftLabel, value: 0, color };
     left.value += row.n;
     leftMap.set(source, left);
-    const right = rightMap.get(target) ?? { id: target, field: row.to, label: rightLabel, value: 0, color: "#475569" };
+    const right = rightMap.get(target) ?? { id: target, field: row.pair.to, label: rightLabel, value: 0, color: "#475569" };
     right.value += row.n;
     rightMap.set(target, right);
     links.push({ source, target, value: row.n, color });
@@ -117,4 +120,8 @@ export function contentReactionFlows(videos: VideoRecord[], locale: Locale): { l
     right: sortNodes([...rightMap.values()], RIGHT_ORDER),
     links: links.sort((a, b) => b.value - a.value),
   };
+}
+
+export function contentReactionCharts(videos: VideoRecord[], locale: Locale): SankeyChart[] {
+  return SANKEY_CHART_IDS.map((id) => ({ id, ...flowsFor(videos, locale, CHARTS[id]) }));
 }

@@ -384,7 +384,8 @@ const zh: Messages = {
     sankeyCount: "条数",
     sankeyShare: "占比",
     sankeyRules: [
-      { title: "记忆、完看 ← Hook、叙事结构", body: "开头决定停不停，故事型叙事更容易被记住、被看完。" },
+      { title: "完看 ← Hook、叙事结构", body: "开头决定停不停。" },
+      { title: "记忆 ← Hook、叙事结构", body: "故事型叙事更容易被记住。" },
       { title: "信任 ← 证据方式、说服机制", body: "可核对的证据和清楚的说服方式，比口头承诺更让人相信。" },
       { title: "行动意愿 ← 漏斗阶段、CTA", body: "越靠近转化、号召越明确，行动意愿越高。" },
     ],
@@ -629,7 +630,8 @@ const en: Messages = {
     sankeyCount: "Count",
     sankeyShare: "Share",
     sankeyRules: [
-      { title: "Memory and watching ← Hook, narrative", body: "The opening decides whether someone stays. Story-like narrative is easier to remember and finish." },
+      { title: "Watching ← Hook, narrative", body: "The opening decides whether someone stays." },
+      { title: "Memory ← Hook, narrative", body: "Story-like narrative is easier to remember." },
       { title: "Trust ← Evidence, persuasion", body: "Checkable evidence and a clear persuasion path are more believable than a verbal claim." },
       { title: "Intent to act ← Funnel stage, CTA", body: "Closer to conversion, and a clearer call to action, go with higher intent." },
     ],
