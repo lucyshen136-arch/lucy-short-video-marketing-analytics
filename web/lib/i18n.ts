@@ -77,6 +77,7 @@ export type Messages = {
     nullRule: string;
     formulaRows: { name: string; expression: string; rule: string }[];
     derived: string;
+    derivedContrast: string;
     ageDays: string;
     likeRate: string;
     commentRate: string;
@@ -335,6 +336,7 @@ const zh: Messages = {
     nullRule: "空值规则",
     formulaRows: formulas("zh"),
     derived: "衍生指标",
+    derivedContrast: "衍生指标与对照",
     ageDays: "采集间隔（天）",
     likeRate: "点赞率",
     commentRate: "评论率",
@@ -565,6 +567,7 @@ const en: Messages = {
     nullRule: "Null rule",
     formulaRows: formulas("en"),
     derived: "Derived metrics",
+    derivedContrast: "Derived metrics and contrast",
     ageDays: "Days since publish",
     likeRate: "Like rate",
     commentRate: "Comment rate",

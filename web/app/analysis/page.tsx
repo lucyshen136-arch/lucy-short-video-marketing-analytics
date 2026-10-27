@@ -1,5 +1,6 @@
 import { Bars } from "@/components/analysis/Bars";
-import { MIN_PAIRS, aiAgreement, associationsByPlatform, deriveMetrics, formatCoefficient, formatRate } from "@/lib/analysis";
+import { Pie } from "@/components/analysis/Pie";
+import { aiAgreement, deriveMetrics, formatRate } from "@/lib/analysis";
 import { collectionSummary, defaultCompletenessLayers, type CompletenessLayer } from "@/lib/completeness";
 import { listAllVideosDb } from "@/lib/data/videos";
 import { completenessFromModel, getVideoModelDb } from "@/lib/data/video-model";
@@ -41,11 +42,9 @@ export default async function AnalysisPage() {
 
   const summary = collectionSummary(videos, layers);
   const derived = videos.map((video) => ({ video, metrics: deriveMetrics(video) }));
-  const associations = associationsByPlatform(videos);
   const agreement = aiAgreement(videos);
   const qualityMax = Math.max(summary.total, 1);
   const contentCounts = countLabels(videos, "content_type", "content_type", locale);
-  const contentMax = Math.max(1, ...contentCounts.map((item) => item.value));
 
   return (
     <div className="space-y-6">
@@ -105,86 +104,39 @@ export default async function AnalysisPage() {
         <p className="px-4 pb-3 text-xs text-slate-500">{a.qualityNote}</p>
       </section>
 
-      <section className="rounded-lg border bg-white p-4 shadow-sm">
-        <h2 className="mb-4 text-lg font-medium">{a.contentDistribution}</h2>
-        <Bars
-          empty={a.noChartValues}
-          items={contentCounts.map((item) => ({
-            label: item.label,
-            value: item.value,
-            max: contentMax,
-            caption: String(item.value),
-          }))}
-        />
-      </section>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(20rem,1fr)] lg:items-stretch">
+        <section className="rounded-lg border bg-white p-4 shadow-sm">
+          <h2 className="mb-4 text-lg font-medium">{a.contentDistribution}</h2>
+          <Pie empty={a.noChartValues} items={contentCounts} />
+        </section>
 
-      <section className="rounded-lg border bg-white shadow-sm">
-        <h2 className="border-b px-4 py-3 text-lg font-medium">{a.formulas}</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b bg-slate-100 text-slate-600">
-              <tr>
-                <th className="px-4 py-2">{a.metric}</th>
-                <th className="px-4 py-2">{a.formula}</th>
-                <th className="px-4 py-2">{a.nullRule}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {a.formulaRows.map((formula) => (
-                <tr key={formula.name} className="border-b last:border-0">
-                  <td className="whitespace-nowrap px-4 py-2 font-medium">{formula.name}</td>
-                  <td className="px-4 py-2 font-mono text-xs">{formula.expression}</td>
-                  <td className="px-4 py-2 text-slate-600">{formula.rule}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="rounded-lg border bg-white shadow-sm">
-        <h2 className="border-b px-4 py-3 text-lg font-medium">{a.derived}</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b bg-slate-100 text-slate-600">
-              <tr>
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">{m.videos.platform}</th>
-                <th className="px-3 py-2">{a.ageDays}</th>
-                <th className="px-3 py-2">{a.likeRate}</th>
-                <th className="px-3 py-2">{a.commentRate}</th>
-                <th className="px-3 py-2">{a.saveRate}</th>
-                <th className="px-3 py-2">{a.shareRate}</th>
-                <th className="px-3 py-2">{a.engagementRate}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {derived.map(({ metrics }) => (
-                <tr key={metrics.video_id} className="border-b last:border-0">
-                  <td className="px-3 py-2 font-mono text-xs">{metrics.video_id}</td>
-                  <td className="px-3 py-2">{platformName(metrics.platform, m.platforms)}</td>
-                  <td className="px-3 py-2">{metrics.metrics_age_days ?? "—"}</td>
-                  <td className="px-3 py-2">{formatRate(metrics.like_rate)}</td>
-                  <td className="px-3 py-2">{formatRate(metrics.comment_rate)}</td>
-                  <td className="px-3 py-2">{formatRate(metrics.save_rate)}</td>
-                  <td className="px-3 py-2">{formatRate(metrics.share_rate)}</td>
-                  <td className="px-3 py-2">{formatRate(metrics.engagement_rate)}</td>
-                </tr>
-              ))}
-              {derived.length === 0 && (
+        <section className="rounded-lg border bg-white shadow-sm">
+          <h2 className="border-b px-4 py-3 text-lg font-medium">{a.formulas}</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b bg-slate-100 text-slate-600">
                 <tr>
-                  <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
-                    {a.noVideos}
-                  </td>
+                  <th className="px-4 py-2">{a.metric}</th>
+                  <th className="px-4 py-2">{a.formula}</th>
+                  <th className="px-4 py-2">{a.nullRule}</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+              <tbody>
+                {a.formulaRows.map((formula) => (
+                  <tr key={formula.name} className="border-b last:border-0">
+                    <td className="whitespace-nowrap px-4 py-2 font-medium">{formula.name}</td>
+                    <td className="px-4 py-2 font-mono text-xs">{formula.expression}</td>
+                    <td className="px-4 py-2 text-slate-600">{formula.rule}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
 
       <section className="rounded-lg border bg-white shadow-sm">
-        <h2 className="border-b px-4 py-3 text-lg font-medium">{a.contrast}</h2>
+        <h2 className="border-b px-4 py-3 text-lg font-medium">{a.derivedContrast}</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b bg-slate-100 text-slate-600">
@@ -198,7 +150,12 @@ export default async function AnalysisPage() {
                 <th className="px-3 py-2">{a.memory}</th>
                 <th className="px-3 py-2">{a.trust}</th>
                 <th className="px-3 py-2">{a.action}</th>
+                <th className="px-3 py-2">{a.ageDays}</th>
                 <th className="px-3 py-2">{a.likeRate}</th>
+                <th className="px-3 py-2">{a.commentRate}</th>
+                <th className="px-3 py-2">{a.saveRate}</th>
+                <th className="px-3 py-2">{a.shareRate}</th>
+                <th className="px-3 py-2">{a.engagementRate}</th>
               </tr>
             </thead>
             <tbody>
@@ -215,59 +172,25 @@ export default async function AnalysisPage() {
                   <td className="px-3 py-2">{video.viewer_memory_score ?? "—"}</td>
                   <td className="px-3 py-2">{video.viewer_trust_score ?? "—"}</td>
                   <td className="px-3 py-2">{video.viewer_action_intent_score ?? "—"}</td>
+                  <td className="px-3 py-2">{metrics.metrics_age_days ?? "—"}</td>
                   <td className="px-3 py-2">{formatRate(metrics.like_rate)}</td>
+                  <td className="px-3 py-2">{formatRate(metrics.comment_rate)}</td>
+                  <td className="px-3 py-2">{formatRate(metrics.save_rate)}</td>
+                  <td className="px-3 py-2">{formatRate(metrics.share_rate)}</td>
+                  <td className="px-3 py-2">{formatRate(metrics.engagement_rate)}</td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="px-4 py-3 text-xs text-slate-500">{a.contrastNote}</p>
-      </section>
-
-      <section className="rounded-lg border bg-white shadow-sm">
-        <h2 className="border-b px-4 py-3 text-lg font-medium">{a.spearman}</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b bg-slate-100 text-slate-600">
-              <tr>
-                <th className="px-3 py-2">{m.videos.platform}</th>
-                <th className="px-3 py-2">{a.pair}</th>
-                <th className="px-3 py-2">{a.pairN}</th>
-                <th className="px-3 py-2">ρ</th>
-                <th className="px-3 py-2">{a.note}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {associations.length === 0 && (
+              {derived.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-8 text-center text-slate-500">
+                  <td colSpan={15} className="px-3 py-8 text-center text-slate-500">
                     {a.noVideos}
                   </td>
                 </tr>
               )}
-              {associations.map((row) => (
-                <tr key={`${row.platform}-${row.name}`} className="border-b last:border-0">
-                  <td className="px-3 py-2">{platformName(row.platform, m.platforms)}</td>
-                  <td className="px-3 py-2">
-                    {a.pairs[row.id]?.name ?? row.name}
-                    <span className="ml-2 text-xs text-slate-500">
-                      {a.pairs[row.id]?.x ?? row.xLabel}
-                      {locale === "zh" ? "，" : ", "}
-                      {a.pairs[row.id]?.y ?? row.yLabel}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">{row.n}</td>
-                  <td className="px-3 py-2 font-mono">{formatCoefficient(row.coefficient)}</td>
-                  <td className="px-3 py-2 text-slate-600">
-                    {row.status === "insufficient" && a.insufficient(MIN_PAIRS)}
-                    {row.status === "undefined" && a.undefinedCoeff}
-                    {row.status === "ok" && a.descriptive}
-                  </td>
-                </tr>
-              ))}
             </tbody>
           </table>
         </div>
+        <p className="px-4 py-3 text-xs text-slate-500">{a.contrastNote}</p>
       </section>
 
       <section className="rounded-lg border bg-white shadow-sm">
