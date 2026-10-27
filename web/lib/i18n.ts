@@ -98,6 +98,8 @@ export type Messages = {
     trust: string;
     action: string;
     contrastNote: string;
+    pagePrev: string;
+    pageNext: string;
     spearman: string;
     pair: string;
     pairN: string;
@@ -357,6 +359,8 @@ const zh: Messages = {
     trust: "信任",
     action: "行动意愿",
     contrastNote: "这是逐条对照，不是分组推断。个人反应只代表填写者一人。",
+    pagePrev: "上一页",
+    pageNext: "下一页",
     spearman: "同平台 Spearman 关联",
     pair: "配对",
     pairN: "有效 n",
@@ -588,6 +592,8 @@ const en: Messages = {
     trust: "Trust",
     action: "Action intent",
     contrastNote: "Row-by-row comparison, not a group inference. Viewer scores are one person.",
+    pagePrev: "Previous",
+    pageNext: "Next",
     spearman: "Within-platform Spearman associations",
     pair: "Pair",
     pairN: "Pairs (n)",

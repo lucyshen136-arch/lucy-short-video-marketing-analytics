@@ -1,4 +1,5 @@
 import { Bars } from "@/components/analysis/Bars";
+import { DerivedContrastTable } from "@/components/analysis/DerivedContrastTable";
 import { Pie } from "@/components/analysis/Pie";
 import { aiAgreement, deriveMetrics, formatRate } from "@/lib/analysis";
 import { collectionSummary, defaultCompletenessLayers, type CompletenessLayer } from "@/lib/completeness";
@@ -137,60 +138,50 @@ export default async function AnalysisPage() {
 
       <section className="rounded-lg border bg-white shadow-sm">
         <h2 className="border-b px-4 py-3 text-lg font-medium">{a.derivedContrast}</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b bg-slate-100 text-slate-600">
-              <tr>
-                <th className="px-3 py-2">ID</th>
-                <th className="px-3 py-2">{m.videos.platform}</th>
-                <th className="px-3 py-2">{m.videos.contentType}</th>
-                <th className="px-3 py-2">Hook</th>
-                <th className="px-3 py-2">{m.detail.funnel}</th>
-                <th className="px-3 py-2">{a.watching}</th>
-                <th className="px-3 py-2">{a.memory}</th>
-                <th className="px-3 py-2">{a.trust}</th>
-                <th className="px-3 py-2">{a.action}</th>
-                <th className="px-3 py-2">{a.ageDays}</th>
-                <th className="px-3 py-2">{a.likeRate}</th>
-                <th className="px-3 py-2">{a.commentRate}</th>
-                <th className="px-3 py-2">{a.saveRate}</th>
-                <th className="px-3 py-2">{a.shareRate}</th>
-                <th className="px-3 py-2">{a.engagementRate}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {derived.map(({ video, metrics }) => (
-                <tr key={video.video_id} className="border-b last:border-0">
-                  <td className="px-3 py-2 font-mono text-xs">{video.video_id}</td>
-                  <td className="px-3 py-2">{platformName(video.meta_platform, m.platforms)}</td>
-                  <td className="px-3 py-2">{contentLabel("content_type", video.content_type, locale)}</td>
-                  <td className="px-3 py-2">{contentLabel("content_hook_type", video.content_hook_type, locale)}</td>
-                  <td className="px-3 py-2">{contentLabel("content_funnel_stage", video.content_funnel_stage, locale)}</td>
-                  <td className="px-3 py-2">
-                    {viewerEnumLabel("viewer_continued_watching", video.viewer_continued_watching, locale)}
-                  </td>
-                  <td className="px-3 py-2">{video.viewer_memory_score ?? "—"}</td>
-                  <td className="px-3 py-2">{video.viewer_trust_score ?? "—"}</td>
-                  <td className="px-3 py-2">{video.viewer_action_intent_score ?? "—"}</td>
-                  <td className="px-3 py-2">{metrics.metrics_age_days ?? "—"}</td>
-                  <td className="px-3 py-2">{formatRate(metrics.like_rate)}</td>
-                  <td className="px-3 py-2">{formatRate(metrics.comment_rate)}</td>
-                  <td className="px-3 py-2">{formatRate(metrics.save_rate)}</td>
-                  <td className="px-3 py-2">{formatRate(metrics.share_rate)}</td>
-                  <td className="px-3 py-2">{formatRate(metrics.engagement_rate)}</td>
-                </tr>
-              ))}
-              {derived.length === 0 && (
-                <tr>
-                  <td colSpan={15} className="px-3 py-8 text-center text-slate-500">
-                    {a.noVideos}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <p className="px-4 py-3 text-xs text-slate-500">{a.contrastNote}</p>
+        <DerivedContrastTable
+          locale={locale}
+          empty={a.noVideos}
+          prev={a.pagePrev}
+          next={a.pageNext}
+          columns={[
+            "ID",
+            m.videos.platform,
+            m.videos.contentType,
+            "Hook",
+            m.detail.funnel,
+            a.watching,
+            a.memory,
+            a.trust,
+            a.action,
+            a.ageDays,
+            a.likeRate,
+            a.commentRate,
+            a.saveRate,
+            a.shareRate,
+            a.engagementRate,
+          ]}
+          rows={derived.map(({ video, metrics }) => ({
+            id: video.video_id,
+            cells: [
+              video.video_id,
+              platformName(video.meta_platform, m.platforms),
+              contentLabel("content_type", video.content_type, locale),
+              contentLabel("content_hook_type", video.content_hook_type, locale),
+              contentLabel("content_funnel_stage", video.content_funnel_stage, locale),
+              viewerEnumLabel("viewer_continued_watching", video.viewer_continued_watching, locale),
+              video.viewer_memory_score == null ? "—" : String(video.viewer_memory_score),
+              video.viewer_trust_score == null ? "—" : String(video.viewer_trust_score),
+              video.viewer_action_intent_score == null ? "—" : String(video.viewer_action_intent_score),
+              metrics.metrics_age_days == null ? "—" : String(metrics.metrics_age_days),
+              formatRate(metrics.like_rate),
+              formatRate(metrics.comment_rate),
+              formatRate(metrics.save_rate),
+              formatRate(metrics.share_rate),
+              formatRate(metrics.engagement_rate),
+            ],
+          }))}
+        />
+        <p className="px-4 pb-3 text-xs text-slate-500">{a.contrastNote}</p>
       </section>
 
       <section className="rounded-lg border bg-white shadow-sm">
